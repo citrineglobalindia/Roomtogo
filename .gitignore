@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Room2Go
+.demo-credentials
+.e2e-credentials
+storage/
+storage-e2e/
+test-results/
+playwright-report/
