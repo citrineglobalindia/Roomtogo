@@ -17,7 +17,7 @@ import { appEnv, isProduction, publicBaseUrl } from "./config";
 function secret() {
   const s = process.env.BETTER_AUTH_SECRET;
   if (!s || s.length < 32) {
-    if (isProduction()) throw new Error("BETTER_AUTH_SECRET must be set (>= 32 chars) in production.");
+    if (isProduction() || publicBaseUrl().startsWith("https://")) throw new Error("BETTER_AUTH_SECRET must be set (>= 32 chars) on any public deployment.");
     return "insecure-dev-better-auth-secret-change-me-please-123456";
   }
   return s;

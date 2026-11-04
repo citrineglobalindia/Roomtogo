@@ -35,7 +35,7 @@ export function publicBaseUrl(): string {
 export function appSecret(): string {
   const s = process.env.APP_SECRET;
   if (!s || s.length < 32) {
-    if (isProduction()) throw new Error("APP_SECRET must be set (>= 32 chars) in production.");
+    if (isProduction() || publicBaseUrl().startsWith("https://")) throw new Error("APP_SECRET must be set (>= 32 chars) on any public deployment.");
     return "insecure-development-secret-do-not-use-in-production";
   }
   return s;
