@@ -6,6 +6,8 @@
  * - Razorpay LIVE keys are refused unless ALLOW_LIVE_PAYMENTS=true is set deliberately by the owner.
  * - Missing provider credentials resolve to "unconfigured" (visible in admin) instead of pretend success.
  */
+import { secretValue } from "./secrets";
+
 export type AppEnv = "development" | "test" | "production";
 
 export type PaymentProviderId = "razorpay" | "demo" | "none";
@@ -28,12 +30,26 @@ export function isDemoMode(): boolean {
   return !isProduction() && bool(process.env.DEMO_MODE, false);
 }
 
+/**
+ * Public origin. On Vercel, a *.vercel.app PUBLIC_BASE_URL that doesn't match the project's real
+ * production domain is replaced by VERCEL_PROJECT_PRODUCTION_URL (custom domains are always honoured).
+ */
 export function publicBaseUrl(): string {
-  return (process.env.PUBLIC_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const configured = (process.env.PUBLIC_BASE_URL ?? "").replace(/\/$/, "");
+  const vercelProd = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  if (vercelProd && (!configured || /\.vercel\.app$/.test(new URL(configured).hostname))) return `https://${vercelProd}`;
+  return configured || "http://localhost:3000";
+}
+
+/** Every origin this deployment answers on (production, branch and deployment URLs on Vercel). */
+export function trustedOrigins(): string[] {
+  const list = [publicBaseUrl()];
+  for (const v of [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL]) if (v) list.push(`https://${v}`);
+  return [...new Set(list)];
 }
 
 export function appSecret(): string {
-  const s = process.env.APP_SECRET;
+  const s = secretValue("APP_SECRET");
   if (!s || s.length < 32) {
     if (isProduction() || publicBaseUrl().startsWith("https://")) throw new Error("APP_SECRET must be set (>= 32 chars) on any public deployment.");
     return "insecure-development-secret-do-not-use-in-production";

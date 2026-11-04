@@ -10,6 +10,7 @@ import { audit } from "@/lib/audit";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { clientKey } from "@/lib/request";
 import { safeEqual } from "@/lib/tokens";
+import { secretValue } from "@/lib/secrets";
 
 /** First-owner bootstrap. Works only while NO staff exist and with the deployment's SETUP_TOKEN. */
 export async function setupOwnerAction(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -17,7 +18,7 @@ export async function setupOwnerAction(_: ActionState, fd: FormData): Promise<Ac
     throw new Error("rate");
   });
   const token = String(fd.get("token") ?? "");
-  const expected = process.env.SETUP_TOKEN ?? "";
+  const expected = secretValue("SETUP_TOKEN") ?? "";
   if (!expected || expected.length < 12 || !safeEqual(token, expected)) return { error: "Invalid setup token." };
   const name = String(fd.get("name") ?? "").trim();
   const email = String(fd.get("email") ?? "").trim().toLowerCase();

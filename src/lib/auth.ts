@@ -12,10 +12,11 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { enqueue } from "@/domain/notifications";
 import { authEmail } from "@/domain/templates";
-import { appEnv, isProduction, publicBaseUrl } from "./config";
+import { appEnv, isProduction, publicBaseUrl, trustedOrigins } from "./config";
+import { secretValue } from "./secrets";
 
 function secret() {
-  const s = process.env.BETTER_AUTH_SECRET;
+  const s = secretValue("BETTER_AUTH_SECRET");
   if (!s || s.length < 32) {
     if (isProduction() || publicBaseUrl().startsWith("https://")) throw new Error("BETTER_AUTH_SECRET must be set (>= 32 chars) on any public deployment.");
     return "insecure-dev-better-auth-secret-change-me-please-123456";
@@ -32,7 +33,7 @@ async function queueAuthEmail(kind: "verify" | "reset", to: string, url: string,
 
 export const auth = betterAuth({
   appName: "Room2Go",
-  baseURL: process.env.BETTER_AUTH_URL ?? publicBaseUrl(),
+  baseURL: publicBaseUrl(),
   secret: secret(),
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -79,7 +80,7 @@ export const auth = betterAuth({
     useSecureCookies: isProduction() || publicBaseUrl().startsWith("https://"),
     cookiePrefix: "r2g",
   },
-  trustedOrigins: [publicBaseUrl()],
+  trustedOrigins: trustedOrigins(),
   plugins: [twoFactor({ issuer: "Room2Go" }), nextCookies()],
 });
 

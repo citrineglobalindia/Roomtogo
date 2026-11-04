@@ -13,7 +13,7 @@ export default async function Setup({ searchParams }: { searchParams: Promise<{ 
   return (
     <main className="mx-auto max-w-md px-5 py-16">
       <h1 className="text-3xl">Create the owner account</h1>
-      <p className="mt-2 text-sm text-muted">One-time setup. Requires the SETUP_TOKEN configured on the server. After this, staff are invited from Admin → Staff.</p>
+      <p className="mt-2 text-sm text-muted">One-time setup. Requires the setup token: the SETUP_TOKEN environment variable or, on hosted demos, the value of SETUP_TOKEN in the database table app_secrets (Supabase → Table Editor). After this, staff are invited from Admin → Staff.</p>
       <div className="mt-6 rounded-lg border border-sand bg-white p-6">
         <AForm action={setupOwnerAction} submit="Create owner" submitClass="btn-primary w-full">
           <F label="Setup token" name="token" defaultValue={token ?? ""} required type="password" />

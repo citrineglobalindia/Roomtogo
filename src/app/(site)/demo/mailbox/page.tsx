@@ -4,7 +4,8 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { notificationOutbox } from "@/db/schema";
 import { processOutbox } from "@/domain/notifications";
-import { isDemoMode } from "@/lib/config";
+import { isDemoMode, publicBaseUrl } from "@/lib/config";
+import { getStaff } from "@/lib/staff";
 import { formatDateTime } from "@/lib/dates";
 
 export const metadata: Metadata = { title: "DEMO mailbox", robots: { index: false, follow: false } };
@@ -12,6 +13,8 @@ export const metadata: Metadata = { title: "DEMO mailbox", robots: { index: fals
 /** Development-only view of captured (undelivered) emails. 404 outside demo mode. */
 export default async function Mailbox({ searchParams }: { searchParams: Promise<{ to?: string }> }) {
   if (!isDemoMode()) notFound();
+  // On a public (https) deployment captured emails contain access codes/reset links: staff only.
+  if (publicBaseUrl().startsWith("https://") && !(await getStaff())?.can("outbox.view")) notFound();
   await processOutbox(50);
   const { to } = await searchParams;
   const rows = await db.select().from(notificationOutbox).where(to ? eq(notificationOutbox.toAddress, to.toLowerCase()) : undefined).orderBy(desc(notificationOutbox.createdAt)).limit(30);

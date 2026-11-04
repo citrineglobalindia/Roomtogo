@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { JOBS, runAllJobs, runJob, type JobName } from "@/domain/jobs";
 import { safeEqual } from "@/lib/tokens";
+import { secretValue } from "@/lib/secrets";
 
 /** Scheduler entry point. Requires Authorization: Bearer $CRON_SECRET. Supports GET (Vercel Cron) and POST. */
 async function handle(req: NextRequest, { params }: { params: Promise<{ job: string }> }) {
-  const secret = process.env.CRON_SECRET;
+  const secret = secretValue("CRON_SECRET");
   const auth = req.headers.get("authorization") ?? "";
   if (!secret || !safeEqual(auth, `Bearer ${secret}`)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { job } = await params;
