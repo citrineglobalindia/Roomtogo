@@ -15,6 +15,13 @@
       "when": 1793619623225,
       "tag": "0001_constraints",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793781179740,
+      "tag": "0002_supabase_lockdown",
+      "breakpoints": true
     }
   ]
 }
