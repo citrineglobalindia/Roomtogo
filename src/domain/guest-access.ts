@@ -9,7 +9,7 @@ import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { db } from "@/db";
 import { accessChallenges, bookings } from "@/db/schema";
-import { isProduction } from "@/lib/config";
+import { isProduction, publicBaseUrl } from "@/lib/config";
 import { UserError } from "@/lib/errors";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { keyedHash, numericCode, safeEqual, signValue, verifySignedValue } from "@/lib/tokens";
@@ -64,7 +64,7 @@ export async function verifyAccessCode(reference: string, code: string, clientKe
 export async function grantBookingAccess(bookingId: string) {
   const jar = await cookies();
   const value = signValue({ bid: bookingId, exp: Date.now() + ACCESS_MINUTES * 60_000 });
-  jar.set(ACCESS_COOKIE, value, { httpOnly: true, secure: isProduction(), sameSite: "lax", path: "/", maxAge: ACCESS_MINUTES * 60 });
+  jar.set(ACCESS_COOKIE, value, { httpOnly: true, secure: isProduction() || publicBaseUrl().startsWith("https://"), sameSite: "lax", path: "/", maxAge: ACCESS_MINUTES * 60 });
 }
 
 /** Booking IDs this browser has been granted access to (single booking per cookie). */

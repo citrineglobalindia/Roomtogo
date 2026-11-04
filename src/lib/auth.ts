@@ -76,7 +76,7 @@ export const auth = betterAuth({
     },
   },
   advanced: {
-    useSecureCookies: isProduction(),
+    useSecureCookies: isProduction() || publicBaseUrl().startsWith("https://"),
     cookiePrefix: "r2g",
   },
   trustedOrigins: [publicBaseUrl()],

@@ -15,7 +15,8 @@
     "worker": "tsx scripts/worker.ts",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "screenshots": "node scripts/screenshot.mjs"
+    "screenshots": "node scripts/screenshot.mjs",
+    "vercel-build": "tsx scripts/migrate.ts && tsx scripts/seed.ts --no-staff && next build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1161.0",

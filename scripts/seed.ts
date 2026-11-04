@@ -18,6 +18,8 @@ import * as s from "@/db/schema";
 
 const BASE_ONLY = process.argv.includes("--base");
 const RESET = process.argv.includes("--reset");
+/** Hosted demo builds: never create staff with passwords (would leak into build logs). Use /admin/setup instead. */
+const NO_STAFF = process.argv.includes("--no-staff");
 
 async function main() {
   const db = getDb();
@@ -219,6 +221,11 @@ async function main() {
     await db.insert(s.reviews).values(sr.map(([body, label]) => ({ authorName: "Sample", displayLabel: label, body, source: "sample" as const, status: "approved" as const, consentToPublish: true })));
   }
 
+  if (NO_STAFF) {
+    console.log("Demo seed complete (no staff created — use /admin/setup).");
+    await getPool().end();
+    return;
+  }
   // Demo staff: random passwords, printed once and written to a gitignored file. Never fixed/public.
   const ctx = await (await import("@/lib/auth")).auth.$context;
   const creds: string[] = [];
