@@ -12,7 +12,8 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   const a = analyticsConfig();
   return (
     <>
-      {info.demo && <DemoBanner />}
+      {/* Site-wide demo strip is off by default; the payment step still labels simulated payments. Set SHOW_DEMO_BANNER=true to bring it back. */}
+      {info.demo && process.env.SHOW_DEMO_BANNER === "true" && <DemoBanner />}
       <SiteHeader phone={info.phone} phoneHref={info.phoneHref} />
       <main id="main">
         {children}
