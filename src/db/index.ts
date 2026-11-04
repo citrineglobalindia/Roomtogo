@@ -9,14 +9,29 @@ export type DbOrTx = DB | Tx;
 
 const globalForDb = globalThis as unknown as { __r2gPool?: Pool; __r2gDb?: DB };
 
+/** Connection string: DATABASE_URL, or POSTGRES_URL as set by Vercel's Supabase/Neon integrations. */
+export function databaseUrl() {
+  return process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
+}
+
+/**
+ * SSL: DATABASE_SSL=require verifies certificates (Neon). Supabase's pooler uses its own CA, so for
+ * supabase hosts (or DATABASE_SSL=no-verify) TLS is used without CA verification. sslmode in the URL is
+ * stripped so these explicit settings apply.
+ */
+export function poolConfig() {
+  const raw = databaseUrl();
+  if (!raw) throw new Error("DATABASE_URL (or POSTGRES_URL) is not set. See .env.example.");
+  const u = new URL(raw);
+  const supabase = /supabase\.(co|com)$/.test(u.hostname);
+  for (const k of ["sslmode", "supa", "pgbouncer"]) u.searchParams.delete(k);
+  const mode = process.env.DATABASE_SSL || (supabase ? "no-verify" : "");
+  const ssl = mode === "require" ? { rejectUnauthorized: true } : mode === "no-verify" ? { rejectUnauthorized: false } : undefined;
+  return { connectionString: u.toString(), ssl };
+}
+
 function createPool() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set. See .env.example.");
-  return new Pool({
-    connectionString: url,
-    max: Number(process.env.DATABASE_POOL_MAX ?? 10),
-    ssl: process.env.DATABASE_SSL === "require" ? { rejectUnauthorized: true } : process.env.DATABASE_SSL === "no-verify" ? { rejectUnauthorized: false } : undefined,
-  });
+  return new Pool({ ...poolConfig(), max: Number(process.env.DATABASE_POOL_MAX ?? 10) });
 }
 
 export function getPool(): Pool {
