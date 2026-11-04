@@ -16,10 +16,12 @@ import { eq, sql } from "drizzle-orm";
 import { getDb, getPool } from "@/db";
 import * as s from "@/db/schema";
 
-const BASE_ONLY = process.argv.includes("--base");
+/** --hosted (Vercel builds): demo data on staging, production-safe baseline only when APP_ENV=production. */
+const HOSTED = process.argv.includes("--hosted");
+const BASE_ONLY = process.argv.includes("--base") || (HOSTED && process.env.APP_ENV === "production");
 const RESET = process.argv.includes("--reset");
 /** Hosted demo builds: never create staff with passwords (would leak into build logs). Use /admin/setup instead. */
-const NO_STAFF = process.argv.includes("--no-staff");
+const NO_STAFF = process.argv.includes("--no-staff") || HOSTED;
 
 async function main() {
   const db = getDb();

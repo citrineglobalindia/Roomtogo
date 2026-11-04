@@ -6,6 +6,7 @@
  * - Razorpay LIVE keys are refused unless ALLOW_LIVE_PAYMENTS=true is set deliberately by the owner.
  * - Missing provider credentials resolve to "unconfigured" (visible in admin) instead of pretend success.
  */
+import { env } from "./hosting-defaults";
 import { secretValue } from "./secrets";
 
 export type AppEnv = "development" | "test" | "production";
@@ -19,7 +20,7 @@ function bool(v: string | undefined, def = false) {
 }
 
 export function appEnv(): AppEnv {
-  const v = (process.env.APP_ENV ?? (process.env.NODE_ENV === "production" ? "production" : "development")) as AppEnv;
+  const v = (env("APP_ENV") ?? (process.env.NODE_ENV === "production" ? "production" : "development")) as AppEnv;
   return ["development", "test", "production"].includes(v) ? v : "development";
 }
 
@@ -27,7 +28,7 @@ export const isProduction = () => appEnv() === "production";
 
 /** Demo mode: sample content and simulated adapters are allowed and loudly labelled. Never in production. */
 export function isDemoMode(): boolean {
-  return !isProduction() && bool(process.env.DEMO_MODE, false);
+  return !isProduction() && bool(env("DEMO_MODE"), false);
 }
 
 /**
@@ -63,7 +64,7 @@ export type PaymentConfig =
   | { provider: "none"; reason: string };
 
 export function paymentConfig(): PaymentConfig {
-  const requested = (process.env.PAYMENT_PROVIDER ?? "none") as PaymentProviderId;
+  const requested = (env("PAYMENT_PROVIDER") ?? "none") as PaymentProviderId;
   if (requested === "demo") {
     if (isProduction()) return { provider: "none", reason: "Demo payments are disabled in production." };
     return { provider: "demo", mode: "demo" };
@@ -90,7 +91,7 @@ export type EmailConfig =
   | { provider: "none"; reason: string };
 
 export function emailConfig(): EmailConfig {
-  const requested = (process.env.EMAIL_PROVIDER ?? "none") as EmailProviderId;
+  const requested = (env("EMAIL_PROVIDER") ?? "none") as EmailProviderId;
   const from = process.env.EMAIL_FROM ?? "Room2Go <no-reply@localhost>";
   if (requested === "demo") {
     if (isProduction()) return { provider: "none", reason: "Demo email capture is disabled in production." };
@@ -119,7 +120,7 @@ export type StorageConfig =
   | { provider: "none"; reason: string };
 
 export function storageConfig(): StorageConfig {
-  const p = process.env.STORAGE_PROVIDER ?? "local";
+  const p = env("STORAGE_PROVIDER") ?? "local";
   if (p === "s3") {
     const { S3_BUCKET, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY } = process.env;
     if (!S3_BUCKET || !S3_REGION || !S3_ACCESS_KEY_ID || !S3_SECRET_ACCESS_KEY)
