@@ -21,7 +21,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ key: s
   return new NextResponse(new Uint8Array(obj.body), {
     headers: {
       "content-type": obj.contentType,
-      "cache-control": m.status === "published" ? "public, max-age=86400, stale-while-revalidate=604800" : "private, no-store",
+      "cache-control": m.status === "published" ? key.startsWith("uploads/") ? "public, max-age=31536000, immutable" : "public, max-age=86400, stale-while-revalidate=604800" : "private, no-store",
       "x-content-type-options": "nosniff",
     },
   });

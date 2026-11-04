@@ -1,5 +1,6 @@
 import { asc } from "drizzle-orm";
 import { ActionButton, AForm, CB, Disclosure, F, S } from "@/components/admin/forms";
+import { ImagePicker } from "@/components/admin/image-picker";
 import { Badge, PageHeader, Panel } from "@/components/admin/ui";
 import { db } from "@/db";
 import { galleryCategories, mediaAssets, roomTypes } from "@/db/schema";
@@ -7,7 +8,7 @@ import { storageConfig } from "@/lib/config";
 import { requireStaffPage } from "@/lib/staff";
 import { categoryAction, mediaAction } from "../../../actions";
 
-export const metadata = { title: "Photos & gallery" };
+export const metadata = { title: "Photo library" };
 
 export default async function Media() {
   await requireStaffPage("media.manage");
@@ -17,17 +18,19 @@ export default async function Media() {
   const store = storageConfig();
   return (
     <>
-      <PageHeader title="Photos & gallery" subtitle="Uploads are re-encoded to WebP (metadata such as GPS is stripped). Images marked SAMPLE are illustrative and are hidden in production." />
+      <PageHeader title="Photo library" subtitle="Every uploaded photo. Room photos: Rooms & units · Gallery order: Gallery · Fixed site photos: Site images. Uploads are re-encoded to WebP (metadata such as GPS is stripped). Images marked SAMPLE are illustrative and are hidden in production." />
       <div className="grid gap-6 xl:grid-cols-[1fr_2fr]">
         <div className="space-y-6">
           <Panel title="Upload photo">
             {store.provider === "none" ? <p className="text-sm text-danger">{store.reason}</p> : (
               <AForm action={mediaAction} hidden={{ op: "upload" }} submit="Upload">
-                <label className="block"><span className="field-label">Image (JPEG, PNG or WebP, max 10 MB)</span><input type="file" name="file" accept="image/jpeg,image/png,image/webp" required className="field" /></label>
+                <ImagePicker label="Photos (JPEG, PNG or WebP — up to 8 at once)" />
                 <F label="Alt text (describe the photo)" name="alt" required />
                 <F label="Caption" name="caption" />
                 <S label="Gallery category" name="categoryId" options={catOpts} />
                 <S label="Room category" name="roomTypeId" options={typeOpts} />
+                <CB label="Show in gallery" name="inGallery" defaultChecked />
+                <CB label="Publish now" name="publish" defaultChecked />
               </AForm>
             )}
           </Panel>

@@ -13,6 +13,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  customType,
   date,
   index,
   integer,
@@ -28,6 +29,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" });
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
 const createdAt = () => ts("created_at").notNull().defaultNow();
 const updatedAt = () => ts("updated_at").notNull().defaultNow();
 const day = (name: string) => date(name, { mode: "string" });
@@ -298,6 +300,8 @@ export const mediaAssets = pgTable(
     categoryId: uuid("category_id").references(() => galleryCategories.id, { onDelete: "set null" }),
     roomTypeId: uuid("room_type_id"),
     inGallery: boolean("in_gallery").notNull().default(true),
+    /** Position on the public gallery (independent of the room-photo order in sortOrder) */
+    gallerySortOrder: integer("gallery_sort_order").notNull().default(0),
     status: publishStatus("status").notNull().default("draft"),
     sortOrder: integer("sort_order").notNull().default(0),
     uploadedByStaffId: uuid("uploaded_by_staff_id"),
@@ -305,6 +309,23 @@ export const mediaAssets = pgTable(
   },
   (t) => [index("media_category_idx").on(t.categoryId), index("media_room_type_idx").on(t.roomTypeId)],
 );
+
+/** Image bytes for the "db" storage provider (persistent on serverless hosts without a bucket). */
+export const mediaBlobs = pgTable("media_blobs", {
+  key: text("key").primaryKey(),
+  contentType: text("content_type").notNull(),
+  body: bytea("body").notNull(),
+  createdAt: createdAt(),
+});
+
+/** Which photo fills each fixed image slot on the website (home hero, about, …). */
+export const siteImages = pgTable("site_images", {
+  slot: text("slot").primaryKey(),
+  mediaId: uuid("media_id")
+    .notNull()
+    .references(() => mediaAssets.id, { onDelete: "cascade" }),
+  updatedAt: updatedAt(),
+});
 
 /* ------------------------------------------------------------------ */
 /* Accommodation inventory                                              */

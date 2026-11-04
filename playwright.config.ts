@@ -27,7 +27,7 @@ export default defineConfig({
       APP_SECRET: "e2e-app-secret-0123456789abcdefghijklmnopqrstuv",
       PAYMENT_PROVIDER: "demo",
       EMAIL_PROVIDER: "demo",
-      STORAGE_PROVIDER: "local",
+      STORAGE_PROVIDER: "db",
       LOCAL_STORAGE_DIR: "./storage-e2e",
       CRON_SECRET: "e2e-cron",
       SETUP_TOKEN: "e2e-setup-token",

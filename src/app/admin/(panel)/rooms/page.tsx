@@ -2,7 +2,8 @@ import { asc, eq } from "drizzle-orm";
 import { AForm, CB, Disclosure, F, S, TA } from "@/components/admin/forms";
 import { Badge, PageHeader, Panel, Table, Td, Unconfirmed } from "@/components/admin/ui";
 import { db } from "@/db";
-import { amenities, mediaAssets, roomTypeAmenities, roomTypes, roomUnits } from "@/db/schema";
+import { RoomPhotos } from "@/components/admin/photo-admin";
+import { amenities, galleryCategories, mediaAssets, roomTypeAmenities, roomTypes, roomUnits } from "@/db/schema";
 import { requireStaffPage } from "@/lib/staff";
 import { saveRoomTypeAction, saveUnitAction } from "../../actions";
 
@@ -10,7 +11,7 @@ export const metadata = { title: "Rooms & units" };
 
 type T = typeof roomTypes.$inferSelect;
 
-function TypeFields({ t, media, ams, linked }: { t?: T; media: { id: string; alt: string }[]; ams: { id: string; name: string }[]; linked: string[] }) {
+function TypeFields({ t, media, ams, linked }: { t?: T; media: { id: string; alt: string; caption: string | null }[]; ams: { id: string; name: string }[]; linked: string[] }) {
   return (
     <>
       {t && <input type="hidden" name="id" value={t.id} />}
@@ -29,7 +30,7 @@ function TypeFields({ t, media, ams, linked }: { t?: T; media: { id: string; alt
         <F label="Extra beds allowed" name="extraBedsAllowed" type="number" min={0} defaultValue={t?.extraBedsAllowed ?? 0} />
         <F label="Beds" name="bedConfiguration" defaultValue={t?.bedConfiguration} />
         <F label="Size (sq ft)" name="sizeSqft" type="number" defaultValue={t?.sizeSqft} />
-        <S label="Cover photo" name="coverMediaId" defaultValue={t?.coverMediaId} options={[["", "None"], ...media.map((m) => [m.id, m.alt] as [string, string])]} />
+        <S label="Cover photo" name="coverMediaId" defaultValue={t?.coverMediaId} options={[["", "None"], ...media.map((m) => [m.id, m.caption ? `${m.caption} — ${m.alt}` : m.alt] as [string, string])]} />
       </div>
       <TA label="Inclusions (one per line)" name="inclusions" defaultValue={t?.inclusions.join("\n")} rows={3} />
       <fieldset><legend className="field-label">Amenities</legend><div className="flex flex-wrap gap-3">{ams.map((a) => <label key={a.id} className="flex items-center gap-1 text-sm"><input type="checkbox" name="amenityIds" value={a.id} defaultChecked={linked.includes(a.id)} />{a.name}</label>)}</div></fieldset>
@@ -45,17 +46,22 @@ function TypeFields({ t, media, ams, linked }: { t?: T; media: { id: string; alt
 export default async function Rooms() {
   const st = await requireStaffPage("inventory.view");
   const edit = st.can("inventory.manage");
-  const [types, units, media, ams, links] = await Promise.all([
+  const photosEdit = st.can("media.manage");
+  const [types, units, allMedia, ams, links, cats] = await Promise.all([
     db.select().from(roomTypes).orderBy(asc(roomTypes.sortOrder)),
     db.select().from(roomUnits).orderBy(asc(roomUnits.sortOrder), asc(roomUnits.label)),
-    db.select({ id: mediaAssets.id, alt: mediaAssets.alt }).from(mediaAssets),
+    db.select().from(mediaAssets).orderBy(asc(mediaAssets.sortOrder), asc(mediaAssets.createdAt)),
     db.select({ id: amenities.id, name: amenities.name }).from(amenities).orderBy(asc(amenities.sortOrder)),
     db.select().from(roomTypeAmenities),
+    db.select().from(galleryCategories).orderBy(asc(galleryCategories.sortOrder)),
   ]);
+  const media = allMedia;
+  const catOpts = cats.map((c) => [c.id, c.name] as [string, string]);
+  const library = allMedia.filter((m) => !m.roomTypeId);
   void eq;
   return (
     <>
-      <PageHeader title="Rooms & units" subtitle="Room categories are what guests choose; physical units are what gets allocated. A stay always stays on one unit unless staff move it." />
+      <PageHeader title="Rooms & units" subtitle="Room categories are what guests choose; physical units are what gets allocated. Manage each room's photos in its panel." />
       <div className="space-y-6">
         {types.map((t) => (
           <Panel key={t.id} title={t.name} actions={<span className="flex gap-1"><Badge value={t.status} /><Badge value={t.publicStatus} /></span>}>
@@ -80,6 +86,7 @@ export default async function Rooms() {
                 ))}
               </Table>
             </div>
+            {photosEdit && <RoomPhotos roomTypeId={t.id} roomName={t.name} coverId={t.coverMediaId} photos={allMedia.filter((m) => m.roomTypeId === t.id)} library={library} categories={catOpts} />}
             {edit && (
               <div className="mt-3 flex flex-wrap gap-2">
                 <Disclosure label="Edit category">

@@ -9,7 +9,8 @@ import { getSettings } from "@/domain/settings";
 import { isProduction } from "@/lib/config";
 import { todayInTz } from "@/lib/dates";
 import { canPreview, getSiteInfo } from "@/lib/site";
-import { galleryItems, mediaByStorageKey, publicAmenities, publicFaqs, publicReviews, roomCards } from "@/lib/site-data";
+import { siteImagesFor } from "@/lib/site-images";
+import { galleryItems, publicAmenities, publicFaqs, publicReviews, roomCards } from "@/lib/site-data";
 import { publicBaseUrl } from "@/lib/config";
 
 type SP = Promise<Record<string, string | string[] | undefined>>;
@@ -31,7 +32,7 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
     publicReviews(),
     publicFaqs(),
   ]);
-  const [hero, about, entrance] = await Promise.all([mediaByStorageKey("sample/executive-room.webp"), mediaByStorageKey("sample/reception.webp"), mediaByStorageKey("sample/entrance.webp")]);
+  const { home_hero: hero, home_about: about, home_location: entrance } = await siteImagesFor(["home_hero", "home_about", "home_location"]);
   const strip = ams.filter((a) => a.showInStrip).slice(0, 4);
   const showUnverified = !isProduction();
   const today = todayInTz(s.timezone);

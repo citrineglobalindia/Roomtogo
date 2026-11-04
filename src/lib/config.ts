@@ -117,6 +117,7 @@ export function emailConfig(): EmailConfig {
 export type StorageConfig =
   | { provider: "s3"; bucket: string; region: string; endpoint?: string; accessKeyId: string; secretAccessKey: string; publicBaseUrl?: string }
   | { provider: "local"; dir: string }
+  | { provider: "db" }
   | { provider: "none"; reason: string };
 
 export function storageConfig(): StorageConfig {
@@ -135,6 +136,7 @@ export function storageConfig(): StorageConfig {
       publicBaseUrl: process.env.S3_PUBLIC_BASE_URL || undefined,
     };
   }
+  if (p === "db") return { provider: "db" };
   if (isProduction() && !bool(process.env.ALLOW_LOCAL_STORAGE_IN_PRODUCTION))
     return { provider: "none", reason: "Local disk storage is not allowed in production; configure S3-compatible storage." };
   return { provider: "local", dir: process.env.LOCAL_STORAGE_DIR ?? "./storage" };

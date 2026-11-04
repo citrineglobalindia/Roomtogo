@@ -26,7 +26,7 @@ export default async function Integrations() {
       <Table head={["Integration", "Status", "Details"]}>
         {row("Payment gateway", pay.provider === "razorpay", pay.provider === "none" ? pay.reason : pay.provider === "demo" ? "DEMO adapter — simulated payments only" : `Razorpay ${pay.mode} · webhook secret ${pay.webhookSecret ? "set" : "MISSING"}`)}
         {row("Transactional email", mail.provider === "smtp", mail.provider === "none" ? mail.reason : mail.provider === "demo" ? "DEMO capture — not delivered" : `SMTP ${mail.host}:${mail.port} from ${mail.from}`)}
-        {row("Media storage", store.provider === "s3", store.provider === "none" ? store.reason : store.provider === "local" ? "Local disk (development only)" : `S3 bucket ${store.bucket}`)}
+        {row("Media storage", store.provider === "s3" || store.provider === "db", store.provider === "none" ? store.reason : store.provider === "local" ? "Local disk (development only)" : store.provider === "db" ? "Database (Supabase Postgres) — persistent" : `S3 bucket ${store.bucket}`)}
         {row("Channel manager / PMS", false, channelConfig().note)}
         {row("Analytics", analyticsConfig().provider !== "none", analyticsConfig().provider === "none" ? "Disabled" : `${analyticsConfig().provider} (consent-gated, no personal data)`)}
         {row("Owner MFA enforcement", requireOwnerMfa(), requireOwnerMfa() ? "Owners must use TOTP" : "Not enforced in this environment")}

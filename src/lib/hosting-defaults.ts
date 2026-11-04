@@ -12,7 +12,7 @@ export const HOSTED_DEMO_DEFAULTS: Record<string, string> = {
   DEMO_MODE: "true",
   PAYMENT_PROVIDER: "demo",
   EMAIL_PROVIDER: "demo",
-  STORAGE_PROVIDER: "local",
+  STORAGE_PROVIDER: "db",
 };
 
 export function env(key: string): string | undefined {

@@ -14,6 +14,8 @@ const privateHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Photos are resized in the browser before upload; Vercel caps request bodies at 4.5 MB.
+  experimental: { serverActions: { bodySizeLimit: "4mb" } },
   serverExternalPackages: ["razorpay", "pg", "nodemailer"],
   async headers() {
     return [

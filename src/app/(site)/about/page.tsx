@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { CtaBand, PageHero, Photo } from "@/components/site/sections";
 import { getContent } from "@/domain/content";
 import { canPreview, getSiteInfo } from "@/lib/site";
-import { mediaByStorageKey } from "@/lib/site-data";
+import { siteImagesFor } from "@/lib/site-images";
 
 export async function generateMetadata(): Promise<Metadata> {
   const c = await getContent("about");
@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function About({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const c = await getContent("about", await canPreview(await searchParams));
   const info = await getSiteInfo();
-  const [a, b] = await Promise.all([mediaByStorageKey("sample/lobby.webp"), mediaByStorageKey("sample/lounge.webp")]);
+  const { about_primary: a, about_secondary: b } = await siteImagesFor(["about_primary", "about_secondary"]);
   return (
     <>
       <PageHero eyebrow="About us" title={c.title} subtitle={c.intro} />

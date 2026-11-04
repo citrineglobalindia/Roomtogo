@@ -1,10 +1,13 @@
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { mediaBlobs } from "@/db/schema";
 import { storageConfig } from "@/lib/config";
 
 export interface StorageAdapter {
-  readonly kind: "s3" | "local";
+  readonly kind: "s3" | "local" | "db";
   put(key: string, body: Buffer, contentType: string): Promise<void>;
   get(key: string): Promise<{ body: Buffer; contentType: string } | null>;
   delete(key: string): Promise<void>;
@@ -72,8 +75,27 @@ class S3Storage implements StorageAdapter {
   }
 }
 
+/** Stores image bytes in Postgres — persistent on serverless hosts (Vercel) without a separate bucket. */
+class DbStorage implements StorageAdapter {
+  readonly kind = "db" as const;
+  async put(key: string, body: Buffer, contentType: string) {
+    await db.insert(mediaBlobs).values({ key, body, contentType }).onConflictDoUpdate({ target: mediaBlobs.key, set: { body, contentType } });
+  }
+  async get(key: string) {
+    const [r] = await db.select().from(mediaBlobs).where(eq(mediaBlobs.key, key));
+    return r ? { body: Buffer.from(r.body), contentType: r.contentType } : null;
+  }
+  async delete(key: string) {
+    await db.delete(mediaBlobs).where(eq(mediaBlobs.key, key));
+  }
+  publicUrl(key: string) {
+    return `/media/${key}`;
+  }
+}
+
 export function getStorage(): StorageAdapter | null {
   const cfg = storageConfig();
+  if (cfg.provider === "db") return new DbStorage();
   if (cfg.provider === "s3") return new S3Storage(cfg);
   if (cfg.provider === "local") return new LocalStorage(cfg.dir);
   return null;

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MobileCollapse } from "@/components/site/swipe";
 import { BookingSearchPanel, Notice, Photo } from "@/components/site/sections";
 import { TrackOnMount } from "@/components/site/client-bits";
+import { EnquiryForm } from "@/components/site/forms";
 import { Icon } from "@/components/ui/icons";
 import { MAX_ONLINE_NIGHTS, quoteSelection, validateStayDates } from "@/domain/booking";
 import { availabilityByType } from "@/domain/inventory";
@@ -62,7 +63,10 @@ export default async function Book({ searchParams }: { searchParams: SP }) {
   const nights = hasDates && q.checkOut > q.checkIn ? diffDays(q.checkIn, q.checkOut) : 0;
   return (
     <div className="container-site py-6 sm:py-10">
-      <h1 className="text-[32px] leading-tight sm:text-[40px]">Check availability</h1>
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+        <h1 className="text-[32px] leading-tight sm:text-[40px]">Check availability</h1>
+        <a href="#extended-stay" className="pb-1 text-sm font-medium text-forest-800 underline-offset-4 hover:underline">Staying a week or longer? Enquire →</a>
+      </div>
       <div className="mt-4 sm:mt-6">
         <MobileCollapse
           startOpen={!(hasDates && !error)}
@@ -90,7 +94,7 @@ export default async function Book({ searchParams }: { searchParams: SP }) {
         {long && (
           <Notice tone="info">
             Stays longer than {MAX_ONLINE_NIGHTS} nights are arranged by our team.{" "}
-            <Link className="font-medium underline" href={`/extended-stays?checkIn=${q.checkIn}&checkOut=${q.checkOut}&guests=${q.adults + q.children}`}>
+            <Link className="font-medium underline" href="#extended-stay">
               Send an extended-stay enquiry
             </Link>
             .
@@ -151,6 +155,26 @@ export default async function Book({ searchParams }: { searchParams: SP }) {
           </>
         )}
       </div>
+
+      {/* EXTENDED / CORPORATE STAYS */}
+      <section id="extended-stay" className="mt-12 scroll-mt-24 overflow-hidden rounded-[10px] border border-sand bg-cream-50 sm:mt-16">
+        <div className="grid gap-8 p-5 sm:p-8 lg:grid-cols-[1fr_1.4fr] lg:gap-12 lg:p-10">
+          <div>
+            <p className="eyebrow">Extended &amp; corporate stays</p>
+            <h2 className="mt-3 text-[28px] leading-tight sm:text-[34px]">Staying a week or longer?</h2>
+            <p className="mt-3 text-muted">Weekly, monthly and corporate stays are arranged directly by our team. Tell us your dates and we’ll come back with availability and a quote.</p>
+            <ul className="mt-5 space-y-2.5 text-sm">
+              <li className="flex gap-2"><Icon name="check" size={18} className="mt-0.5 shrink-0 text-gold-600" /> Weekly and monthly stays</li>
+              <li className="flex gap-2"><Icon name="check" size={18} className="mt-0.5 shrink-0 text-gold-600" /> Corporate and team accommodation</li>
+              <li className="flex gap-2"><Icon name="check" size={18} className="mt-0.5 shrink-0 text-gold-600" /> Quotes prepared by our team — no automatic long-stay pricing</li>
+            </ul>
+            <Link href="/extended-stays" className="mt-6 inline-block text-sm font-medium text-forest-800 underline-offset-4 hover:underline">More about extended stays</Link>
+          </div>
+          <div className="card p-5 sm:p-6">
+            <EnquiryForm kind="extended_stay" today={today} defaults={{ checkIn: hasDates ? q.checkIn : "", checkOut: hasDates ? q.checkOut : "", guests: String((q.adults || 1) + (q.children || 0)) }} />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

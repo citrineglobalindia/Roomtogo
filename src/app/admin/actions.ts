@@ -4,7 +4,7 @@
  * touching data — hidden menu items are not a security boundary. Material changes are audited.
  */
 import { randomBytes, randomUUID } from "node:crypto";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect, unstable_rethrow } from "next/navigation";
 import sharp from "sharp";
@@ -34,6 +34,7 @@ import { getStorage } from "@/integrations/storage";
 import { audit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { publicBaseUrl } from "@/lib/config";
+import { SITE_IMAGE_SLOTS } from "@/lib/site-images";
 import { eachNight, isIsoDate, todayInTz } from "@/lib/dates";
 import { safeMessage, UserError } from "@/lib/errors";
 import { rupeesToPaise } from "@/lib/money";
@@ -620,54 +621,229 @@ export async function amenityAction(_: ActionState, fd: FormData): Promise<Actio
 }
 
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
+const MAX_UPLOAD_FILES = 8;
+
+/** Validate, re-encode (strips EXIF/GPS, caps size) and store one uploaded image. */
+async function storeImage(file: File, meta: { alt: string; caption?: string | null; categoryId?: string | null; roomTypeId?: string | null; published: boolean; inGallery: boolean; sortOrder?: number; gallerySortOrder?: number }, staffId: string) {
+  if (!ALLOWED_MIME.has(file.type)) throw new UserError(`${file.name}: only JPEG, PNG or WebP images are allowed.`);
+  if (file.size > 10 * 1024 * 1024) throw new UserError(`${file.name}: image must be under 10 MB.`);
+  const store = getStorage();
+  if (!store) throw new UserError("Media storage is not configured.");
+  let out: Buffer;
+  let info: { width: number; height: number };
+  try {
+    ({ data: out, info } = await sharp(Buffer.from(await file.arrayBuffer()), { limitInputPixels: 50_000_000 })
+      .rotate()
+      .resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toBuffer({ resolveWithObject: true }));
+  } catch {
+    throw new UserError(`${file.name} could not be read as an image.`);
+  }
+  const key = `uploads/${new Date().toISOString().slice(0, 7)}/${randomUUID()}.webp`;
+  await store.put(key, out, "image/webp");
+  const [m] = await db
+    .insert(s.mediaAssets)
+    .values({
+      storageKey: key,
+      url: store.publicUrl(key),
+      alt: meta.alt,
+      caption: meta.caption || null,
+      width: info.width,
+      height: info.height,
+      mimeType: "image/webp",
+      bytes: out.length,
+      categoryId: meta.categoryId || null,
+      roomTypeId: meta.roomTypeId || null,
+      status: meta.published ? "published" : "draft",
+      inGallery: meta.inGallery,
+      sortOrder: meta.sortOrder ?? 0,
+      gallerySortOrder: meta.gallerySortOrder ?? 0,
+      uploadedByStaffId: staffId,
+    })
+    .returning();
+  return m;
+}
+
+function uploadedFiles(fd: FormData) {
+  const files = fd.getAll("file").filter((f): f is File => f instanceof File && f.size > 0);
+  if (!files.length) throw new UserError("Choose at least one photo.");
+  if (files.length > MAX_UPLOAD_FILES) throw new UserError(`Upload up to ${MAX_UPLOAD_FILES} photos at a time.`);
+  return files;
+}
+
+async function nextOrder(col: "sortOrder" | "gallerySortOrder", roomTypeId?: string) {
+  const c = col === "sortOrder" ? s.mediaAssets.sortOrder : s.mediaAssets.gallerySortOrder;
+  const where = roomTypeId ? eq(s.mediaAssets.roomTypeId, roomTypeId) : eq(s.mediaAssets.inGallery, true);
+  const [r] = await db.select({ n: sql<number>`coalesce(max(${c}), -1)::int + 1` }).from(s.mediaAssets).where(where);
+  return r?.n ?? 0;
+}
+
+/** Move a photo one step up/down within its room or within the gallery (renumbers the whole list). */
+async function movePhoto(id: string, dir: "up" | "down", scope: "room" | "gallery") {
+  const [m] = await db.select().from(s.mediaAssets).where(eq(s.mediaAssets.id, id));
+  if (!m) throw new UserError("Photo not found.");
+  const col = scope === "room" ? s.mediaAssets.sortOrder : s.mediaAssets.gallerySortOrder;
+  const where = scope === "room" ? (m.roomTypeId ? eq(s.mediaAssets.roomTypeId, m.roomTypeId) : null) : eq(s.mediaAssets.inGallery, true);
+  if (!where) throw new UserError("This photo is not attached to a room.");
+  const list = await db.select({ id: s.mediaAssets.id }).from(s.mediaAssets).where(where).orderBy(asc(col), asc(s.mediaAssets.createdAt));
+  const i = list.findIndex((x) => x.id === id);
+  const j = dir === "up" ? i - 1 : i + 1;
+  if (i < 0 || j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
+  await db.transaction(async (tx) => {
+    for (const [k, row] of list.entries()) {
+      await tx.update(s.mediaAssets).set(scope === "room" ? { sortOrder: k } : { gallerySortOrder: k }).where(eq(s.mediaAssets.id, row.id));
+    }
+  });
+}
+
+async function deletePhoto(id: string) {
+  const [m] = await db.select().from(s.mediaAssets).where(eq(s.mediaAssets.id, id));
+  await db.update(s.roomTypes).set({ coverMediaId: null }).where(eq(s.roomTypes.coverMediaId, id));
+  await db.delete(s.mediaAssets).where(eq(s.mediaAssets.id, id));
+  if (m && !m.storageKey.startsWith("sample/")) await getStorage()?.delete(m.storageKey);
+  return m;
+}
+
+const refreshSite = () => revalidatePath("/", "layout");
 
 export async function mediaAction(_: ActionState, fd: FormData): Promise<ActionState> {
   return act("media.manage", async (st) => {
     const op = str(fd, "op");
-    if (op === "upload") {
-      const file = fd.get("file");
-      if (!(file instanceof File) || file.size === 0) throw new UserError("Choose an image.");
-      if (!ALLOWED_MIME.has(file.type)) throw new UserError("Only JPEG, PNG or WebP images are allowed.");
-      if (file.size > 10 * 1024 * 1024) throw new UserError("Image must be under 10 MB.");
-      const alt = str(fd, "alt");
-      if (alt.length < 4) throw new UserError("Describe the photo (alt text) for accessibility.");
-      const store = getStorage();
-      if (!store) throw new UserError("Media storage is not configured.");
-      let out: Buffer;
-      let meta: { width: number; height: number };
-      try {
-        // Decode + re-encode: verifies it's a real image, strips EXIF/GPS metadata, caps dimensions.
-        ({ data: out, info: meta } = await sharp(Buffer.from(await file.arrayBuffer()), { limitInputPixels: 50_000_000 })
-          .rotate()
-          .resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true })
-          .webp({ quality: 82 })
-          .toBuffer({ resolveWithObject: true }));
-      } catch {
-        throw new UserError("That file could not be read as an image.");
-      }
-      const key = `uploads/${new Date().toISOString().slice(0, 7)}/${randomUUID()}.webp`;
-      await store.put(key, out, "image/webp");
-      const [m] = await db
-        .insert(s.mediaAssets)
-        .values({ storageKey: key, url: store.publicUrl(key), alt, caption: str(fd, "caption") || null, width: meta.width, height: meta.height, mimeType: "image/webp", bytes: out.length, categoryId: str(fd, "categoryId") || null, roomTypeId: str(fd, "roomTypeId") || null, status: "draft", uploadedByStaffId: st.staffId })
-        .returning();
-      await audit(db, st.actor, "media.uploaded", "media", m.id, null, { key, alt });
-      return "Uploaded as draft. Publish it when ready.";
-    }
     const id = str(fd, "id");
-    if (op === "delete") {
+
+    // Library / gallery upload (one or many)
+    if (op === "upload" || op === "gallery_upload") {
+      const files = uploadedFiles(fd);
+      const gallery = op === "gallery_upload" || bool(fd, "inGallery");
+      const published = op === "gallery_upload" || bool(fd, "publish");
+      const caption = str(fd, "caption") || null;
+      const alt = str(fd, "alt") || caption || "Room2Go photo";
+      let g = await nextOrder("gallerySortOrder");
+      for (const f of files) {
+        const m = await storeImage(f, { alt, caption, categoryId: str(fd, "categoryId") || null, roomTypeId: str(fd, "roomTypeId") || null, published, inGallery: gallery, gallerySortOrder: g++ }, st.staffId);
+        await audit(db, st.actor, "media.uploaded", "media", m.id, null, { key: m.storageKey, alt });
+      }
+      refreshSite();
+      return `${files.length} photo${files.length > 1 ? "s" : ""} uploaded${published ? " and published" : " as draft"}.`;
+    }
+
+    // Room photos
+    if (op === "room_upload") {
+      const roomTypeId = str(fd, "roomTypeId");
+      const [t] = await db.select().from(s.roomTypes).where(eq(s.roomTypes.id, roomTypeId));
+      if (!t) throw new UserError("Room category not found.");
+      const files = uploadedFiles(fd);
+      const toGallery = bool(fd, "inGallery");
+      let order = await nextOrder("sortOrder", t.id);
+      let g = await nextOrder("gallerySortOrder");
+      const caption = str(fd, "caption") || null;
+      let first: string | null = null;
+      for (const f of files) {
+        const m = await storeImage(f, { alt: str(fd, "alt") || `${t.name} at Room2Go`, caption: caption ?? t.name, categoryId: str(fd, "categoryId") || null, roomTypeId: t.id, published: true, inGallery: toGallery, sortOrder: order++, gallerySortOrder: g++ }, st.staffId);
+        first ??= m.id;
+        await audit(db, st.actor, "media.uploaded", "media", m.id, null, { key: m.storageKey, roomTypeId: t.id });
+      }
+      if (first && (bool(fd, "makeCover") || !t.coverMediaId)) await db.update(s.roomTypes).set({ coverMediaId: first }).where(eq(s.roomTypes.id, t.id));
+      refreshSite();
+      return `${files.length} photo${files.length > 1 ? "s" : ""} added to ${t.name}.`;
+    }
+    if (op === "set_cover") {
       const [m] = await db.select().from(s.mediaAssets).where(eq(s.mediaAssets.id, id));
+      if (!m?.roomTypeId) throw new UserError("Attach the photo to a room first.");
+      await db.update(s.roomTypes).set({ coverMediaId: m.id }).where(eq(s.roomTypes.id, m.roomTypeId));
+      if (m.status !== "published") await db.update(s.mediaAssets).set({ status: "published" }).where(eq(s.mediaAssets.id, m.id));
+      await audit(db, st.actor, "room.cover_set", "room_type", m.roomTypeId, null, { mediaId: m.id });
+      refreshSite();
+      return "Cover photo updated.";
+    }
+    if (op === "attach_room") {
+      const roomTypeId = str(fd, "roomTypeId");
+      if (!id || !roomTypeId) throw new UserError("Choose a photo.");
+      await db.update(s.mediaAssets).set({ roomTypeId, status: "published", sortOrder: await nextOrder("sortOrder", roomTypeId) }).where(eq(s.mediaAssets.id, id));
+      await audit(db, st.actor, "media.attached_room", "media", id, null, { roomTypeId });
+      refreshSite();
+      return "Photo added to the room.";
+    }
+    if (op === "detach_room") {
       await db.update(s.roomTypes).set({ coverMediaId: null }).where(eq(s.roomTypes.coverMediaId, id));
-      await db.delete(s.mediaAssets).where(eq(s.mediaAssets.id, id));
-      if (m && !m.storageKey.startsWith("sample/")) await getStorage()?.delete(m.storageKey);
+      await db.update(s.mediaAssets).set({ roomTypeId: null }).where(eq(s.mediaAssets.id, id));
+      await audit(db, st.actor, "media.detached_room", "media", id);
+      refreshSite();
+      return "Removed from the room (still in the photo library).";
+    }
+    if (op === "move_room" || op === "move_gallery") {
+      await movePhoto(id, str(fd, "dir") === "up" ? "up" : "down", op === "move_room" ? "room" : "gallery");
+      refreshSite();
+      return "Order updated.";
+    }
+
+    // Gallery
+    if (op === "gallery_add") {
+      const ids = (fd.getAll("ids").map(String).filter(Boolean).length ? fd.getAll("ids").map(String) : [id]).filter(Boolean);
+      if (!ids.length) throw new UserError("Select at least one photo.");
+      let g = await nextOrder("gallerySortOrder");
+      for (const x of ids) {
+        await db.update(s.mediaAssets).set({ inGallery: true, status: "published", gallerySortOrder: g++, ...(str(fd, "categoryId") ? { categoryId: str(fd, "categoryId") } : {}) }).where(eq(s.mediaAssets.id, x));
+      }
+      await audit(db, st.actor, "gallery.added", "media", ids.join(","));
+      refreshSite();
+      return `${ids.length} photo${ids.length > 1 ? "s" : ""} added to the gallery.`;
+    }
+    if (op === "gallery_remove") {
+      await db.update(s.mediaAssets).set({ inGallery: false }).where(eq(s.mediaAssets.id, id));
+      await audit(db, st.actor, "gallery.removed", "media", id);
+      refreshSite();
+      return "Removed from the gallery (photo kept).";
+    }
+    if (op === "gallery_category") {
+      await db.update(s.mediaAssets).set({ categoryId: str(fd, "categoryId") || null }).where(eq(s.mediaAssets.id, id));
+      refreshSite();
+      return "Category updated.";
+    }
+
+    // Site-wide image slots
+    if (op === "site_set" || op === "site_upload") {
+      const slot = str(fd, "slot");
+      const def = SITE_IMAGE_SLOTS.find((d) => d.slot === slot);
+      if (!def) throw new UserError("Unknown image position.");
+      let mediaId = id;
+      if (op === "site_upload") {
+        const [f] = uploadedFiles(fd);
+        const m = await storeImage(f, { alt: str(fd, "alt") || def.label.replace(/ — /, " "), published: true, inGallery: false }, st.staffId);
+        mediaId = m.id;
+      } else {
+        if (!mediaId) throw new UserError("Choose a photo.");
+        await db.update(s.mediaAssets).set({ status: "published" }).where(eq(s.mediaAssets.id, mediaId));
+      }
+      await db.insert(s.siteImages).values({ slot, mediaId }).onConflictDoUpdate({ target: s.siteImages.slot, set: { mediaId, updatedAt: new Date() } });
+      await audit(db, st.actor, "site_image.set", "site_image", slot, null, { mediaId });
+      refreshSite();
+      return `${def.label} updated.`;
+    }
+    if (op === "site_reset") {
+      const slot = str(fd, "slot");
+      await db.delete(s.siteImages).where(eq(s.siteImages.slot, slot));
+      await audit(db, st.actor, "site_image.reset", "site_image", slot);
+      refreshSite();
+      return "Back to the default photo.";
+    }
+
+    if (op === "delete") {
+      const m = await deletePhoto(id);
       await audit(db, st.actor, "media.deleted", "media", id, m);
+      refreshSite();
       return "Deleted.";
     }
+    if (op !== "update") throw new UserError("Unknown action.");
     const v = { alt: str(fd, "alt"), caption: str(fd, "caption") || null, categoryId: str(fd, "categoryId") || null, roomTypeId: str(fd, "roomTypeId") || null, status: (str(fd, "status") || "draft") as "draft", inGallery: bool(fd, "inGallery"), sortOrder: int(fd, "sortOrder", 0)! };
+    if (v.alt.length < 4) throw new UserError("Describe the photo (alt text) for accessibility.");
     await db.update(s.mediaAssets).set(v).where(eq(s.mediaAssets.id, id));
     await audit(db, st.actor, "media.updated", "media", id, null, v);
+    refreshSite();
     return "Saved.";
-  }, ["/admin/content/media", "/gallery", "/"]);
+  }, ["/admin/content/media", "/admin/gallery", "/admin/site-images", "/admin/rooms"]);
 }
 
 /* ------------------------------ Reviews/Enquiries/Guests ------------------ */

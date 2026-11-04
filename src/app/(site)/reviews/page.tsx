@@ -4,7 +4,8 @@ import { Photo, ReviewCard } from "@/components/site/sections";
 import { Icon } from "@/components/ui/icons";
 import { getContent } from "@/domain/content";
 import { getSiteInfo } from "@/lib/site";
-import { mediaByStorageKey, publicReviews } from "@/lib/site-data";
+import { publicReviews } from "@/lib/site-data";
+import { siteImagesFor } from "@/lib/site-images";
 
 export async function generateMetadata(): Promise<Metadata> {
   const c = await getContent("reviews");
@@ -12,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Reviews() {
-  const [c, reviews, info, hero] = await Promise.all([getContent("reviews"), publicReviews(), getSiteInfo(), mediaByStorageKey("sample/lounge.webp")]);
+  const [c, reviews, info, hero] = await Promise.all([getContent("reviews"), publicReviews(), getSiteInfo(), siteImagesFor(["reviews_hero"]).then((x) => x.reviews_hero)]);
   const anySample = reviews.some((r) => r.source === "sample");
   return (
     <>
