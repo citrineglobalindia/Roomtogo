@@ -29,9 +29,10 @@ export function Logo({ light = false, className = "" }: { light?: boolean; class
 export function DemoBanner() {
   return (
     <div role="note" className="bg-gold-100 text-gold-700 border-b border-gold-300 text-xs">
-      <div className="container-site flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5">
-        <strong className="tracking-wide">DEMO MODE</strong>
-        <span>Sample rooms, rates, photos, policies and reviews. Payments use a simulated gateway — no money moves. Emails are captured, not delivered.</span>
+      <div className="container-site flex items-center gap-x-3 py-1.5">
+        <strong className="shrink-0 tracking-wide">DEMO MODE</strong>
+        <span className="truncate sm:hidden">Sample data · simulated payments</span>
+        <span className="hidden sm:inline">Sample rooms, rates, photos, policies and reviews. Payments use a simulated gateway — no money moves. Emails are captured, not delivered.</span>
       </div>
     </div>
   );
@@ -50,29 +51,29 @@ const footerLinks = [
 
 export function SiteFooter({ info }: { info: SiteInfo }) {
   return (
-    <footer className="bg-forest-900 text-cream-100">
-      <div className="container-site grid gap-10 py-14 md:grid-cols-[1.2fr_1.6fr_1.2fr] md:gap-0">
+    <footer className="bg-forest-900 pb-[calc(76px+env(safe-area-inset-bottom))] text-cream-100 sm:pb-0">
+      <div className="container-site grid gap-9 py-12 sm:py-14 md:grid-cols-[1.2fr_1.6fr_1.2fr] md:gap-0">
         <div className="md:pr-10 md:border-r md:border-white/15">
           <Logo light />
           <p className="mt-3 text-sm text-cream-200/80">A more comfortable tomorrow.</p>
           <p className="mt-6 text-sm text-cream-200/80">{info.address}</p>
         </div>
         <nav aria-label="Footer" className="md:px-10 md:border-r md:border-white/15">
-          <ul className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+          <ul className="grid grid-cols-2 gap-x-6 text-[15px] sm:gap-y-0.5 sm:text-sm">
             {footerLinks.map(([l, h]) => (
               <li key={h}>
-                <Link className="text-cream-100/90 hover:text-gold-300" href={h}>
+                <Link className="block py-2 text-cream-100/90 hover:text-gold-300 sm:py-1" href={h}>
                   {l}
                 </Link>
               </li>
             ))}
           </ul>
         </nav>
-        <div className="space-y-3 text-sm md:pl-10">
-          <a href={info.phoneHref} className="flex items-center gap-3 hover:text-gold-300" data-track="call">
+        <div className="space-y-1 text-[15px] sm:text-sm md:pl-10">
+          <a href={info.phoneHref} className="flex items-center gap-3 py-2 hover:text-gold-300" data-track="call">
             <Icon name="phone" size={18} className="text-gold-300" /> {info.phone}
           </a>
-          <a href={`mailto:${info.email}`} className="flex items-center gap-3 hover:text-gold-300">
+          <a href={`mailto:${info.email}`} className="flex items-center gap-3 py-2 break-all hover:text-gold-300">
             <Icon name="mail" size={18} className="text-gold-300" /> {info.email}
           </a>
           {info.whatsappHref && (
@@ -94,11 +95,11 @@ export function SiteFooter({ info }: { info: SiteInfo }) {
       <div className="border-t border-white/10">
         <div className="container-site flex flex-wrap items-center justify-between gap-3 py-5 text-xs text-cream-200/70">
           <span>© {new Date().getFullYear()} Room2Go. All rights reserved.</span>
-          <span className="flex gap-5">
-            <Link href="/privacy" className="hover:text-gold-300">Privacy</Link>
-            <Link href="/terms" className="hover:text-gold-300">Terms</Link>
-            <Link href="/cancellation-policy" className="hover:text-gold-300">Cancellation</Link>
-            <Link href="/house-rules" className="hover:text-gold-300">House rules</Link>
+          <span className="flex flex-wrap gap-x-5 gap-y-1">
+            <Link href="/privacy" className="py-1.5 hover:text-gold-300">Privacy</Link>
+            <Link href="/terms" className="py-1.5 hover:text-gold-300">Terms</Link>
+            <Link href="/cancellation-policy" className="py-1.5 hover:text-gold-300">Cancellation</Link>
+            <Link href="/house-rules" className="py-1.5 hover:text-gold-300">House rules</Link>
           </span>
         </div>
       </div>

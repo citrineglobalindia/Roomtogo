@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SwipeRow } from "@/components/site/swipe";
 import { BookingSearchPanel, CtaBand, Eyebrow, FaqList, Photo, ReviewCard, RoomCard, SectionHead, AmenityItem } from "@/components/site/sections";
 import { GalleryStrip } from "@/components/site/gallery";
 import { Icon } from "@/components/ui/icons";
@@ -49,22 +50,22 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {preview && <p className="bg-forest-800 py-1 text-center text-xs text-white">Previewing draft content</p>}
       {/* HERO: image + heading left, booking panel right */}
-      <section className="container-site pt-5 sm:pt-6">
-        <div className="relative overflow-hidden rounded-[10px] bg-forest-900">
-          <Photo photo={hero} priority className="absolute inset-0 h-full w-full" imgClassName="opacity-90" showSampleBadge={false} />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/35 to-transparent" />
-          <div className="relative grid gap-8 p-6 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center lg:p-12">
-            <div className="max-w-xl py-6 text-white lg:py-16">
+      <section className="sm:mx-auto sm:w-full sm:max-w-[1240px] sm:px-8 sm:pt-6">
+        <div className="relative overflow-hidden sm:rounded-[10px] sm:bg-forest-900">
+          <Photo photo={hero} priority className="absolute inset-x-0 top-0 h-[400px] w-full bg-forest-900 sm:inset-0 sm:h-full" imgClassName="opacity-90" showSampleBadge={false} />
+          <div className="absolute inset-x-0 top-0 h-[400px] bg-gradient-to-t from-black/75 via-black/30 to-black/10 sm:inset-0 sm:h-full sm:bg-gradient-to-r sm:from-black/65 sm:via-black/35 sm:to-transparent" />
+          <div className="relative grid gap-6 px-4 sm:gap-8 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center lg:p-12">
+            <div className="animate-fade-up flex min-h-[330px] max-w-xl flex-col justify-end px-1 pb-2 pt-10 text-white sm:block sm:min-h-0 sm:px-0 sm:py-6 lg:py-16">
               <p className="eyebrow !text-gold-300">{c.heroEyebrow}</p>
-              <h1 className="mt-4 text-[44px] leading-[1.02] !text-white sm:text-[60px]">{c.heroTitle}</h1>
-              <p className="mt-5 max-w-md text-[17px] text-white/90">{c.heroSubtitle}</p>
+              <h1 className="mt-3 text-[38px] leading-[1.04] !text-white sm:mt-4 sm:text-[60px]">{c.heroTitle}</h1>
+              <p className="mt-4 max-w-md text-[16px] text-white/90 sm:mt-5 sm:text-[17px]">{c.heroSubtitle}</p>
               {hero?.isSample && <p className="mt-6 inline-block rounded bg-black/40 px-2 py-0.5 text-[10px] uppercase tracking-wider">Illustrative sample photo</p>}
             </div>
             <BookingSearchPanel today={today} roomTypes={rooms.map((r) => ({ id: r.type.id, name: r.type.name }))} />
           </div>
         </div>
         {strip.length > 0 && (
-          <ul className="mt-px grid grid-cols-2 gap-y-5 rounded-b-[10px] border border-t-0 border-sand bg-cream-50 px-6 py-5 sm:grid-cols-4 sm:divide-x sm:divide-sand">
+          <ul className="mx-4 mt-4 grid grid-cols-2 gap-x-4 gap-y-5 rounded-[10px] border border-sand bg-cream-50 px-5 py-5 sm:mx-0 sm:mt-px sm:grid-cols-4 sm:divide-x sm:divide-sand sm:rounded-t-none sm:border-t-0 sm:px-6">
             {strip.map((a) => (
               <li key={a.id} className="flex flex-col items-start gap-1.5 sm:flex-row sm:items-center sm:justify-center sm:gap-3 sm:px-4">
                 <Icon name={a.icon} size={26} className="text-forest-800" />
@@ -79,10 +80,10 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
       </section>
 
       {/* ABOUT */}
-      <section className="container-site grid gap-10 py-16 sm:py-20 md:grid-cols-2 md:items-center">
+      <section className="container-site grid gap-8 py-12 sm:gap-10 sm:py-20 md:grid-cols-2 md:items-center">
         <div>
           <Eyebrow>{c.aboutEyebrow}</Eyebrow>
-          <h2 className="mt-4 text-[38px] sm:text-[46px]">{c.aboutTitle}</h2>
+          <h2 className="mt-3 text-[32px] leading-tight sm:mt-4 sm:text-[46px]">{c.aboutTitle}</h2>
           <p className="mt-5 max-w-md text-muted">{c.aboutBody}</p>
           <Link href="/about" className="btn-primary mt-7">
             Learn more about us <Icon name="arrow" size={16} />
@@ -92,7 +93,7 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
       </section>
 
       {/* ROOMS */}
-      <section className="container-site pb-16 sm:pb-20">
+      <section className="container-site pb-12 sm:pb-20">
         <SectionHead eyebrow={c.roomsEyebrow} title={c.roomsTitle} subtitle={c.roomsSubtitle} />
         <div className="grid gap-6 md:grid-cols-2">
           {rooms.map((r) => (
@@ -103,7 +104,7 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
 
       {/* AMENITIES */}
       {ams.length > 0 && (
-        <section className="border-y border-sand bg-cream-50 py-16 sm:py-20">
+        <section className="border-y border-sand bg-cream-50 py-12 sm:py-20">
           <div className="container-site">
             <SectionHead eyebrow={c.amenitiesEyebrow} title={c.amenitiesTitle} aside={<Link href="/amenities" className="text-sm font-medium text-forest-800 underline-offset-4 hover:underline">All amenities</Link>} />
             <div className="grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
@@ -117,7 +118,7 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
 
       {/* GALLERY */}
       {gallery.length > 0 && (
-        <section className="container-site py-16 sm:py-20">
+        <section className="container-site py-12 sm:py-20">
           <SectionHead eyebrow={c.galleryEyebrow} title={c.galleryTitle} aside={<p className="text-sm text-muted">{c.gallerySubtitle} <Link href="/gallery" className="ml-2 font-medium text-forest-800 underline-offset-4 hover:underline">View gallery</Link></p>} />
           <GalleryStrip items={gallery} />
         </section>
@@ -125,22 +126,22 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
 
       {/* TESTIMONIALS (approved only; hidden when none) */}
       {reviews.length > 0 && (
-        <section className="container-site pb-16 sm:pb-20">
+        <section className="container-site pb-12 sm:pb-20">
           <SectionHead
             eyebrow={c.reviewsEyebrow}
             title={c.reviewsTitle}
             aside={reviews.some((r) => r.source === "sample") ? <p className="text-xs text-muted">Sample testimonials — replace with verified guest reviews.</p> : <Link href="/reviews" className="text-sm font-medium text-forest-800 hover:underline">All reviews</Link>}
           />
-          <div className="grid gap-5 md:grid-cols-3">
+          <SwipeRow cols={3} label="Guest reviews">
             {reviews.slice(0, 3).map((r) => (
               <ReviewCard key={r.id} r={r} />
             ))}
-          </div>
+          </SwipeRow>
         </section>
       )}
 
       {/* LOCATION / CONTACT */}
-      <section className="container-site grid gap-8 pb-16 sm:pb-20 md:grid-cols-[1.1fr_1fr] md:items-center">
+      <section className="container-site grid gap-8 pb-12 sm:pb-20 md:grid-cols-[1.1fr_1fr] md:items-center">
         <Photo photo={entrance} className="aspect-[16/11] rounded-[10px]" sizes="(min-width: 768px) 50vw, 100vw" />
         <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr]">
           <div>
@@ -179,7 +180,7 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
 
       {/* FAQ */}
       {faqs.length > 0 && (
-        <section className="container-site grid gap-8 pb-16 sm:pb-20 md:grid-cols-[1fr_1.4fr]">
+        <section className="container-site grid gap-8 pb-12 sm:pb-20 md:grid-cols-[1fr_1.4fr]">
           <div>
             <Eyebrow>{c.faqEyebrow}</Eyebrow>
             <h2 className="mt-3 text-[34px]">{c.faqTitle}</h2>

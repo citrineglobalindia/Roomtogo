@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SwipeRow } from "./swipe";
 import { Icon } from "@/components/ui/icons";
 
 export type GalleryItem = { id: string; url: string; alt: string; caption: string | null; category: string | null; isSample: boolean };
@@ -104,14 +105,14 @@ export function GalleryGrid({ items, categories }: { items: GalleryItem[]; categ
   const shown = cat === "all" ? items : items.filter((i) => i.category === cat);
   return (
     <>
-      <div role="group" aria-label="Filter photos by category" className="mb-8 flex flex-wrap justify-center gap-3">
+      <div role="group" aria-label="Filter photos by category" className="-mx-5 mb-6 flex snap-x gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:mx-0 sm:mb-8 sm:flex-wrap sm:justify-center sm:gap-3 sm:overflow-visible sm:px-0">
         {[{ slug: "all", name: "All" }, ...categories].map((c) => (
           <button
             key={c.slug}
             type="button"
             aria-pressed={cat === c.slug}
             onClick={() => setCat(c.slug)}
-            className={`min-w-[92px] rounded-full border px-6 py-2 text-sm transition-colors ${cat === c.slug ? "border-forest-800 bg-forest-800 text-white" : "border-sand bg-cream-50 text-ink hover:border-forest-700"}`}
+            className={`min-h-[42px] shrink-0 snap-start rounded-full border px-5 py-2 text-sm transition-colors sm:min-w-[92px] sm:px-6 ${cat === c.slug ? "border-forest-800 bg-forest-800 text-white" : "border-sand bg-cream-50 text-ink hover:border-forest-700"}`}
           >
             {c.name}
           </button>
@@ -120,15 +121,15 @@ export function GalleryGrid({ items, categories }: { items: GalleryItem[]; categ
       {shown.length === 0 ? (
         <p className="py-16 text-center text-muted">No photos in this category yet.</p>
       ) : (
-        <ul className="grid auto-rows-[220px] grid-cols-1 gap-3 sm:grid-cols-2 md:auto-rows-[210px] md:grid-cols-12">
+        <ul className="grid auto-rows-[140px] grid-cols-2 gap-2 min-[480px]:auto-rows-[180px] sm:gap-3 md:auto-rows-[210px] md:grid-cols-12">
           {shown.map((it, i) => (
-            <li key={it.id} className={`group relative overflow-hidden rounded-md ${spanFor(i, shown.length)} ${i === 0 ? "sm:col-span-2 sm:row-span-2" : ""}`}>
+            <li key={it.id} className={`group relative overflow-hidden rounded-md ${spanFor(i, shown.length)} ${i === 0 ? "col-span-2 row-span-2 md:row-span-1" : ""}`}>
               <button type="button" onClick={() => setOpen(i)} className="block h-full w-full text-left" aria-label={`Open photo: ${it.caption ?? it.alt}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={it.url} alt={it.alt} loading={i < 3 ? "eager" : "lazy"} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
                 <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
-                {it.caption && <span className="absolute bottom-3 left-4 font-serif text-lg text-white drop-shadow">{it.caption}</span>}
-                <span className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white">
+                {it.caption && <span className="absolute bottom-2 left-3 font-serif text-sm text-white drop-shadow sm:bottom-3 sm:left-4 sm:text-lg">{it.caption}</span>}
+                <span className="absolute right-2 top-2 hidden h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white sm:inline-flex">
                   <Icon name="expand" size={16} />
                 </span>
                 {it.isSample && <span className="absolute bottom-3 right-3 rounded bg-black/55 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-white">Sample</span>}
@@ -150,9 +151,20 @@ export function GalleryStrip({ items }: { items: GalleryItem[] }) {
   const visible = [0, 1, 2].map((k) => items[(start + k) % items.length]).filter((v, i, a) => a.indexOf(v) === i);
   return (
     <div className="relative">
-      <ul className="grid gap-3 sm:grid-cols-3">
-        {visible.map((it, k) => (
-          <li key={it.id} className={`relative aspect-[4/3] overflow-hidden rounded-md ${k > 0 ? "hidden sm:block" : ""}`}>
+      <SwipeRow cols={3} label="Photos" className="sm:hidden">
+        {items.map((it, i) => (
+          <div key={it.id} className="relative aspect-[4/3] overflow-hidden rounded-md">
+            <button type="button" className="block h-full w-full" onClick={() => setOpen(i)} aria-label={`Open photo: ${it.caption ?? it.alt}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={it.url} alt={it.alt} loading="lazy" className="h-full w-full object-cover" />
+              {it.isSample && <span className="absolute bottom-2 right-2 rounded bg-black/55 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-white">Sample</span>}
+            </button>
+          </div>
+        ))}
+      </SwipeRow>
+      <ul className="hidden gap-3 sm:grid sm:grid-cols-3">
+        {visible.map((it) => (
+          <li key={it.id} className="relative aspect-[4/3] overflow-hidden rounded-md">
             <button type="button" className="block h-full w-full" onClick={() => setOpen(items.indexOf(it))} aria-label={`Open photo: ${it.caption ?? it.alt}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={it.url} alt={it.alt} loading="lazy" className="h-full w-full object-cover" />
@@ -163,10 +175,10 @@ export function GalleryStrip({ items }: { items: GalleryItem[] }) {
       </ul>
       {items.length > 1 && (
         <>
-          <button type="button" onClick={() => setStart((s) => (s - 1 + items.length) % items.length)} className="absolute left-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-cream-50 text-forest-900 shadow" aria-label="Previous photos">
+          <button type="button" onClick={() => setStart((s) => (s - 1 + items.length) % items.length)} className="absolute left-3 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-cream-50 text-forest-900 shadow sm:inline-flex" aria-label="Previous photos">
             <Icon name="chevronLeft" />
           </button>
-          <button type="button" onClick={() => setStart((s) => (s + 1) % items.length)} className="absolute right-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-cream-50 text-forest-900 shadow" aria-label="Next photos">
+          <button type="button" onClick={() => setStart((s) => (s + 1) % items.length)} className="absolute right-3 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-cream-50 text-forest-900 shadow sm:inline-flex" aria-label="Next photos">
             <Icon name="chevronRight" />
           </button>
         </>

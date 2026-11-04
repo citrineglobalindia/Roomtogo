@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { MobileCollapse } from "@/components/site/swipe";
 import { BookingSearchPanel, Notice, Photo } from "@/components/site/sections";
 import { TrackOnMount } from "@/components/site/client-bits";
 import { Icon } from "@/components/ui/icons";
@@ -60,12 +61,26 @@ export default async function Book({ searchParams }: { searchParams: SP }) {
   }
   const nights = hasDates && q.checkOut > q.checkIn ? diffDays(q.checkIn, q.checkOut) : 0;
   return (
-    <div className="container-site py-10">
-      <h1 className="text-[40px]">Check availability</h1>
-      <div className="mt-6">
-        <BookingSearchPanel compact title="" today={today} roomTypes={rooms.map((r) => ({ id: r.type.id, name: r.type.name }))} defaults={{ ...q, checkIn: q.checkIn || today, checkOut: q.checkOut || addDays(today, 1) }} />
+    <div className="container-site py-6 sm:py-10">
+      <h1 className="text-[32px] leading-tight sm:text-[40px]">Check availability</h1>
+      <div className="mt-4 sm:mt-6">
+        <MobileCollapse
+          startOpen={!(hasDates && !error)}
+          summary={
+            hasDates ? (
+              <>
+                <span className="font-medium text-forest-900">{formatDate(q.checkIn, { day: "numeric", month: "short" })} → {formatDate(q.checkOut, { day: "numeric", month: "short" })}</span>
+                <span className="text-muted"> · {q.adults + q.children} guest{q.adults + q.children > 1 ? "s" : ""} · {q.rooms} room{q.rooms > 1 ? "s" : ""}</span>
+              </>
+            ) : (
+              "Choose your dates"
+            )
+          }
+        >
+          <BookingSearchPanel compact title="" today={today} roomTypes={rooms.map((r) => ({ id: r.type.id, name: r.type.name }))} defaults={{ ...q, checkIn: q.checkIn || today, checkOut: q.checkOut || addDays(today, 1) }} />
+        </MobileCollapse>
       </div>
-      <div className="mt-8 space-y-4" aria-live="polite">
+      <div className="mt-6 space-y-4 sm:mt-8" aria-live="polite">
         {!status.open && (
           <Notice tone="info">
             Online booking isn’t open yet. Please <Link className="underline" href={`/contact`}>send an enquiry</Link> or call us — our team will confirm availability and rates.

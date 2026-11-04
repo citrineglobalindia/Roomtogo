@@ -40,10 +40,14 @@ test.describe("accessibility & responsive UI", () => {
     await nav.getByRole("link", { name: "Gallery" }).click();
     await expect(page).toHaveURL(/\/gallery/);
     await expect(page.getByRole("link", { name: "Check availability" }).last()).toBeVisible();
-    // footer content stays reachable above the fixed bar
-    await page.keyboard.press("End");
-    const pad = await page.evaluate(() => getComputedStyle(document.querySelector("main")!).paddingBottom);
+    // footer reserves room for the bar, and the bar slides away once the footer is on screen
+    const pad = await page.evaluate(() => getComputedStyle(document.querySelector("footer")!).paddingBottom);
     expect(parseInt(pad)).toBeGreaterThanOrEqual(72);
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await expect(page.locator("div.fixed.bottom-0[aria-hidden='true']")).toHaveCount(1);
+    // the bar never appears inside the booking flow
+    await page.goto("/book");
+    await expect(page.locator("div.fixed.bottom-0.sm\\:hidden")).toHaveCount(0);
   });
 
   test("private pages are not indexable; public pages have canonical + structured data without ratings", async ({ page, request }) => {

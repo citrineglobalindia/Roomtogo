@@ -52,10 +52,10 @@ export function Photo({
 
 export function SectionHead({ eyebrow, title, subtitle, aside, center = false }: { eyebrow?: string; title: string; subtitle?: string; aside?: React.ReactNode; center?: boolean }) {
   return (
-    <div className={`mb-8 flex flex-wrap items-end justify-between gap-4 ${center ? "flex-col !items-center text-center" : ""}`}>
+    <div className={`mb-6 flex flex-wrap items-end justify-between gap-3 sm:mb-8 sm:gap-4 ${center ? "flex-col !items-center text-center" : ""}`}>
       <div className={center ? "max-w-2xl" : "max-w-xl"}>
         {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
-        <h2 className="mt-3 text-[34px] sm:text-[42px]">{title}</h2>
+        <h2 className="mt-2 text-[30px] leading-tight sm:mt-3 sm:text-[42px]">{title}</h2>
         {subtitle && <p className="mt-3 text-muted">{subtitle}</p>}
       </div>
       {aside}
@@ -79,9 +79,9 @@ export function BookingSearchPanel({
   const ci = defaults?.checkIn ?? "";
   const co = defaults?.checkOut ?? "";
   return (
-    <form action="/book" method="get" className={`rounded-[10px] bg-cream-50 p-5 shadow-[var(--shadow-card)] ring-1 ring-sand sm:p-6 ${compact ? "" : "lg:w-[340px]"}`} aria-label="Check availability">
-      {title && <h2 className="mb-4 text-[26px]">{title}</h2>}
-      <div className={`grid gap-3 ${compact ? "sm:grid-cols-2 lg:grid-cols-6 lg:items-end" : "grid-cols-2"}`}>
+    <form action="/book" method="get" data-booking-panel className={`rounded-[10px] bg-cream-50 p-4 shadow-[var(--shadow-card)] ring-1 ring-sand sm:p-6 ${compact ? "" : "lg:w-[340px]"}`} aria-label="Check availability">
+      {title && <h2 className="mb-3 text-[24px] sm:mb-4 sm:text-[26px]">{title}</h2>}
+      <div className={`grid gap-x-3 gap-y-3 [&>label]:min-w-0 ${compact ? "grid-cols-2 lg:grid-cols-6 lg:items-end" : "grid-cols-2"}`}>
         <label className={compact ? "lg:col-span-1" : "col-span-1"}>
           <span className="field-label">Check-in</span>
           <input className="field" type="date" name="checkIn" min={today} max={addDays(today, 365)} defaultValue={ci} required />
@@ -125,7 +125,7 @@ export function BookingSearchPanel({
             ))}
           </select>
         </label>
-        <button className={`btn-primary mt-1 w-full ${compact ? "sm:col-span-2 lg:col-span-6" : "col-span-2"}`} type="submit">
+        <button className={`btn-primary mt-1 w-full ${compact ? "col-span-2 lg:col-span-6" : "col-span-2"}`} type="submit">
           Check availability <Icon name="arrow" size={16} />
         </button>
       </div>
@@ -187,7 +187,7 @@ export function RoomCard({
             ))}
           </ul>
         )}
-        <div className="mt-auto grid grid-cols-2 gap-3 pt-6">
+        <div className="mt-auto grid gap-2.5 pt-6 min-[400px]:grid-cols-2 sm:gap-3">
           <Link href={`/rooms/${room.slug}`} className="btn-outline">
             View room details
           </Link>
@@ -205,13 +205,13 @@ export type ReviewData = { id: string; body: string; displayLabel: string | null
 export function ReviewCard({ r, tinted = false }: { r: ReviewData; tinted?: boolean }) {
   const isSample = r.source === "sample";
   return (
-    <figure className={`flex h-full flex-col rounded-[10px] p-7 ${tinted ? "bg-sage-100" : "bg-cream-200/70"}`}>
+    <figure className={`flex h-full flex-col rounded-[10px] p-6 sm:p-7 ${tinted ? "bg-sage-100" : "bg-cream-200/70"}`}>
       <div className="flex items-center gap-4">
         <Icon name="quote" size={34} className="text-gold-500" />
         {isSample && <span className="text-xs tracking-wide text-muted">Sample review</span>}
       </div>
       {r.title && <p className="mt-4 font-serif text-lg text-forest-900">{r.title}</p>}
-      <blockquote className="mt-4 font-serif text-[19px] leading-snug text-ink">“{r.body}”</blockquote>
+      <blockquote className="mt-4 font-serif text-[18px] leading-snug text-ink sm:text-[19px]">“{r.body}”</blockquote>
       <figcaption className="mt-auto pt-6">
         <span className="mb-3 block h-px w-8 bg-gold-500" />
         <span className="text-sm text-ink/80">{r.displayLabel || r.authorName}</span>
@@ -248,7 +248,7 @@ export function CtaBand({ eyebrow, title, subtitle, phone, phoneHref, whatsappHr
       <svg className="pointer-events-none absolute -right-10 -bottom-10 h-72 w-72 text-white/5" viewBox="0 0 24 24" aria-hidden>
         <path d="M4 20C4 10 10 4 21 3c-1 11-7 17-17 17Z" fill="currentColor" />
       </svg>
-      <div className="container-site relative grid gap-8 py-14 md:grid-cols-[1.4fr_1fr] md:items-center">
+      <div className="container-site relative grid gap-6 py-12 sm:gap-8 sm:py-14 md:grid-cols-[1.4fr_1fr] md:items-center">
         <div>
           <p className="eyebrow !text-gold-300">{eyebrow}</p>
           <h2 className="mt-3 text-[34px] !text-cream-50 sm:text-[40px]">{title}</h2>
@@ -288,9 +288,9 @@ export function PageHero({ title, subtitle, eyebrow }: { title: string; subtitle
       <svg className="pointer-events-none absolute -left-8 top-6 h-48 w-48 text-forest-800/[0.06]" viewBox="0 0 24 24" aria-hidden>
         <path d="M4 20C4 10 10 4 21 3c-1 11-7 17-17 17Zm0 0 9-9" fill="currentColor" stroke="currentColor" />
       </svg>
-      <div className="container-site relative py-14 text-center sm:py-16">
+      <div className="container-site relative py-10 text-center sm:py-16">
         {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
-        <h1 className="mt-2 text-[40px] sm:text-[54px]">{title}</h1>
+        <h1 className="mt-2 text-[34px] leading-tight sm:text-[54px]">{title}</h1>
         <span className="mx-auto mt-5 block h-px w-14 bg-gold-500" />
         {subtitle && <p className="mx-auto mt-5 max-w-2xl text-muted">{subtitle}</p>}
       </div>

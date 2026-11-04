@@ -13,8 +13,8 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   return (
     <>
       {info.demo && <DemoBanner />}
-      <SiteHeader />
-      <main id="main" className="pb-20 sm:pb-0">
+      <SiteHeader phone={info.phone} phoneHref={info.phoneHref} />
+      <main id="main">
         {children}
       </main>
       <SiteFooter info={info} />

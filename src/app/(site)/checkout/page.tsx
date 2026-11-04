@@ -50,15 +50,32 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
           <li>4. Confirmation</li>
         </ol>
       </nav>
-      <h1 className="text-[40px]">Review your stay</h1>
+      <h1 className="text-[32px] leading-tight sm:text-[40px]">Review your stay</h1>
       {error || !result ? (
         <div className="mt-6 space-y-4">
           <Notice tone="error">{error}</Notice>
           <Link href="/book" className="btn-outline">Back to availability</Link>
         </div>
       ) : (
-        <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_380px]">
-          <div className="card p-6 sm:p-8">
+        <div className="mt-5 grid gap-6 sm:mt-6 sm:gap-8 lg:grid-cols-[1fr_380px]">
+          <details className="card group overflow-hidden lg:hidden">
+            <summary className="flex min-h-[56px] cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+              <span className="min-w-0">
+                <span className="block text-xs uppercase tracking-wider text-muted">Your stay</span>
+                <span className="block truncate text-sm text-ink">
+                  {formatDate(input.checkIn, { day: "numeric", month: "short" })} → {formatDate(input.checkOut, { day: "numeric", month: "short" })} · {input.adults + input.children} guest{input.adults + input.children > 1 ? "s" : ""}
+                </span>
+              </span>
+              <span className="flex shrink-0 items-center gap-2 font-serif text-xl text-forest-900">
+                {formatINR(result.quote.totalPaise)}
+                <span className="text-muted transition-transform duration-200 group-open:rotate-180" aria-hidden>⌄</span>
+              </span>
+            </summary>
+            <div className="border-t border-sand p-4">
+              <PriceSummary quote={result.quote} />
+            </div>
+          </details>
+          <div className="card p-5 sm:p-8">
             <h2 className="mb-5 text-2xl">Lead guest details</h2>
             <GuestDetailsForm
               hidden={{ checkIn: input.checkIn, checkOut: input.checkOut, adults: String(input.adults), children: String(input.children), sel }}
@@ -73,7 +90,7 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
               </div>
             </GuestDetailsForm>
           </div>
-          <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+          <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start [&>div:first-child]:hidden lg:[&>div:first-child]:block">
             <div className="card p-5">
               <h2 className="text-2xl">Stay summary</h2>
               <p className="mt-2 text-sm text-muted">
