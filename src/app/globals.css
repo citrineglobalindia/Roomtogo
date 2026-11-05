@@ -1,5 +1,6 @@
 @import "tailwindcss";
-@import "@fontsource-variable/newsreader";
+@import "@fontsource-variable/newsreader/opsz.css";
+@import "@fontsource-variable/newsreader/opsz-italic.css";
 @import "@fontsource-variable/dm-sans";
 
 /* Room2Go design tokens — derived from the three approved design references. */
@@ -12,7 +13,8 @@
   --color-cream-200: #f4ede1;
   --color-cream-300: #ebe1d0;
   --color-sand: #e8dfd0;
-  --color-forest-950: #0f2b21;
+  --color-forest-975: #08170f;
+  --color-forest-950: #0c241b;
   --color-forest-900: #133429;
   --color-forest-800: #173d2f;
   --color-forest-700: #1f4d3c;
@@ -22,7 +24,9 @@
   --color-gold-700: #8c6a35;
   --color-gold-600: #a57f45;
   --color-gold-500: #b8925a;
+  --color-gold-400: #cdb07a;
   --color-gold-300: #dcc39a;
+  --color-gold-200: #e9d8b6;
   --color-gold-100: #f6ead3;
   --color-ink: #1f2a24;
   --color-muted: #5f625a;
@@ -30,7 +34,9 @@
   --color-warning: #8a5a00;
 
   --radius-card: 10px;
-  --shadow-card: 0 1px 2px rgb(31 42 36 / 0.04), 0 6px 24px -12px rgb(31 42 36 / 0.18);
+  --shadow-card: 0 1px 2px rgb(31 42 36 / 0.04), 0 18px 40px -24px rgb(31 42 36 / 0.28);
+  --shadow-lux: 0 30px 60px -30px rgb(8 23 15 / 0.55);
+  --gradient-gold: linear-gradient(135deg, #b08a4f 0%, #e3c995 45%, #c9a66b 70%, #a57f45 100%);
 }
 
 @layer base {
@@ -39,7 +45,9 @@
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
     color: var(--color-ink);
-    background: var(--color-cream-100);
+    background-color: var(--color-cream-100);
+    /* faint paper grain so large ivory areas never read as flat white */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.28 0 0 0 0 0.18 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -51,10 +59,13 @@
   h1, h2, h3, .font-display {
     font-family: var(--font-serif);
     font-weight: 400;
-    letter-spacing: -0.015em;
-    line-height: 1.08;
+    letter-spacing: -0.02em;
+    line-height: 1.06;
     color: var(--color-forest-900);
+    font-optical-sizing: auto;
   }
+  h1, h2 { font-weight: 350; }
+  h1 em, h2 em, .font-display em { font-style: italic; font-weight: 350; color: var(--color-gold-600); }
   :focus-visible {
     outline: 3px solid var(--color-gold-500);
     outline-offset: 2px;
@@ -70,16 +81,16 @@
 
 @utility container-site { @apply mx-auto w-full max-w-[1240px] px-5 sm:px-8; }
 @utility eyebrow {
-  @apply inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-gold-600;
-  &::after { content: ""; display: inline-block; width: 36px; height: 1px; background: currentColor; }
+  @apply inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.28em] text-gold-600;
+  &::after { content: ""; display: inline-block; width: 40px; height: 1px; background: linear-gradient(90deg, currentColor, transparent); }
 }
 @utility btn {
   @apply inline-flex min-h-[46px] items-center justify-center gap-2 rounded-md px-5 py-3 text-[15px] font-medium transition-[background-color,color,transform] duration-150 select-none active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm;
 }
-@utility btn-primary { @apply btn bg-forest-800 text-white hover:bg-forest-700; }
-@utility btn-outline { @apply btn border border-forest-800 bg-transparent text-forest-800 hover:bg-forest-800 hover:text-white; }
-@utility btn-gold { @apply btn bg-gold-500 text-forest-950 hover:bg-gold-300; }
-@utility btn-ghost-light { @apply btn border border-white/60 text-white hover:bg-white/10; }
+@utility btn-primary { @apply btn bg-forest-900 text-cream-50 shadow-[inset_0_0_0_1px_rgb(220_195_154_/_0.25)] hover:bg-forest-800 hover:shadow-[inset_0_0_0_1px_rgb(220_195_154_/_0.6)]; }
+@utility btn-outline { @apply btn border border-forest-900/70 bg-transparent text-forest-900 hover:border-forest-900 hover:bg-forest-900 hover:text-cream-50; }
+@utility btn-gold { @apply btn text-forest-975 shadow-[0_10px_30px_-12px_rgb(176_138_79_/_0.8)] hover:brightness-[1.06]; background-image: var(--gradient-gold); }
+@utility btn-ghost-light { @apply btn border border-gold-300/50 text-cream-50 hover:border-gold-300 hover:bg-gold-300/10; }
 @utility btn-danger { @apply btn border border-danger/50 bg-white text-danger hover:bg-red-50; }
 @utility btn-sm { @apply min-h-[40px] px-3.5 py-2 text-[13px] sm:min-h-[36px] sm:text-xs; }
 @utility field-label { @apply mb-1.5 block text-[13px] font-medium text-muted sm:mb-1 sm:text-xs; }
@@ -87,7 +98,26 @@
 @utility field {
   @apply min-h-[46px] w-full min-w-0 rounded-md border border-sand bg-white px-3 py-2.5 text-base text-ink placeholder:text-muted/70 focus:border-forest-700 focus:outline-none focus:ring-2 focus:ring-forest-700/20 sm:min-h-[42px] sm:text-sm;
 }
-@utility card { @apply rounded-[var(--radius-card)] border border-sand bg-cream-50 shadow-[var(--shadow-card)]; }
+@utility card { @apply rounded-[var(--radius-card)] border border-gold-300/35 bg-[#fffdf9] shadow-[var(--shadow-card)]; }
+
+/* Luxury helpers */
+@utility text-gold-gradient { background-image: var(--gradient-gold); -webkit-background-clip: text; background-clip: text; color: transparent; }
+@utility gold-rule { @apply block h-px w-16; background: linear-gradient(90deg, transparent, var(--color-gold-400), transparent); }
+@utility hairline-gold { border-image: linear-gradient(90deg, transparent, rgb(205 176 122 / 0.6), transparent) 1; }
+/* Photo with an offset gold frame */
+@utility frame-gold {
+  @apply relative;
+  &::before { content: ""; position: absolute; inset: 0; transform: translate(14px, 14px); border: 1px solid var(--color-gold-400); border-radius: inherit; z-index: 0; pointer-events: none; }
+  & > * { position: relative; z-index: 1; }
+}
+/* Deep green band: cream type, gold glow */
+@utility section-dark {
+  @apply relative isolate bg-forest-950 text-cream-100;
+  background-image: radial-gradient(60% 50% at 85% 0%, rgb(205 176 122 / 0.12), transparent 70%), radial-gradient(50% 60% at 0% 100%, rgb(44 100 80 / 0.35), transparent 70%);
+  & :where(h1, h2, h3) { color: var(--color-cream-50); }
+  & :where(.text-muted) { color: rgb(244 237 225 / 0.68); }
+  & :where(.eyebrow) { color: var(--color-gold-300); }
+}
 @utility badge { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium; }
 @utility badge-sample { @apply badge bg-gold-100 text-gold-700 ring-1 ring-gold-300; }
 @utility prose-r2g {
@@ -109,6 +139,16 @@
 @keyframes r2g-fade-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @utility animate-fade-down { animation: r2g-fade-down 180ms ease-out both; }
 @utility animate-fade-up { animation: r2g-fade-up 240ms ease-out both; }
+@keyframes r2g-kenburns { from { transform: scale(1.0); } to { transform: scale(1.08); } }
+@utility ken-burns { animation: r2g-kenburns 18s ease-out both; }
+@keyframes r2g-rise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+@utility rise { animation: r2g-rise 900ms cubic-bezier(.2,.7,.2,1) both; }
+/* Sections fade up as they scroll into view (progressive: browsers without scroll timelines show them as-is) */
+@supports (animation-timeline: view()) {
+  .reveal { animation: r2g-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 55%; }
+}
+.img-zoom img { transition: transform 900ms cubic-bezier(.2,.7,.2,1); }
+.img-zoom:hover img { transform: scale(1.05); }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

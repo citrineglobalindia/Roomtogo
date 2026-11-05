@@ -157,20 +157,22 @@ export default async function Book({ searchParams }: { searchParams: SP }) {
       </div>
 
       {/* EXTENDED / CORPORATE STAYS */}
-      <section id="extended-stay" className="mt-12 scroll-mt-24 overflow-hidden rounded-[10px] border border-sand bg-cream-50 sm:mt-16">
+      <section id="extended-stay" className="section-dark mt-14 scroll-mt-24 overflow-hidden rounded-[14px] border border-gold-300/20 sm:mt-20">
         <div className="grid gap-8 p-5 sm:p-8 lg:grid-cols-[1fr_1.4fr] lg:gap-12 lg:p-10">
           <div>
             <p className="eyebrow">Extended &amp; corporate stays</p>
-            <h2 className="mt-3 text-[28px] leading-tight sm:text-[34px]">Staying a week or longer?</h2>
+            <h2 className="mt-4 text-[32px] leading-tight sm:text-[44px]">
+              Staying a week <em>or longer?</em>
+            </h2>
             <p className="mt-3 text-muted">Weekly, monthly and corporate stays are arranged directly by our team. Tell us your dates and we’ll come back with availability and a quote.</p>
             <ul className="mt-5 space-y-2.5 text-sm">
-              <li className="flex gap-2"><Icon name="check" size={18} className="mt-0.5 shrink-0 text-gold-600" /> Weekly and monthly stays</li>
-              <li className="flex gap-2"><Icon name="check" size={18} className="mt-0.5 shrink-0 text-gold-600" /> Corporate and team accommodation</li>
-              <li className="flex gap-2"><Icon name="check" size={18} className="mt-0.5 shrink-0 text-gold-600" /> Quotes prepared by our team — no automatic long-stay pricing</li>
+              <li className="flex gap-2 text-cream-100/85"><Icon name="check" size={18} className="mt-0.5 shrink-0 text-gold-300" /> Weekly and monthly stays</li>
+              <li className="flex gap-2 text-cream-100/85"><Icon name="check" size={18} className="mt-0.5 shrink-0 text-gold-300" /> Corporate and team accommodation</li>
+              <li className="flex gap-2 text-cream-100/85"><Icon name="check" size={18} className="mt-0.5 shrink-0 text-gold-300" /> Quotes prepared by our team — no automatic long-stay pricing</li>
             </ul>
-            <Link href="/extended-stays" className="mt-6 inline-block text-sm font-medium text-forest-800 underline-offset-4 hover:underline">More about extended stays</Link>
+            <Link href="/extended-stays" className="mt-7 inline-block text-sm uppercase tracking-[0.16em] text-gold-300 hover:text-gold-200">More about extended stays →</Link>
           </div>
-          <div className="card p-5 sm:p-6">
+          <div className="card p-5 text-ink sm:p-7 [&_h2]:!text-forest-900 [&_h3]:!text-forest-900 [&_.text-muted]:!text-muted">
             <EnquiryForm kind="extended_stay" today={today} defaults={{ checkIn: hasDates ? q.checkIn : "", checkOut: hasDates ? q.checkOut : "", guests: String((q.adults || 1) + (q.children || 0)) }} />
           </div>
         </div>

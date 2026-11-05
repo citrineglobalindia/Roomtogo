@@ -37,25 +37,28 @@ export default async function RoomDetail({ params }: P) {
   const showRate = t.baseRatePaise != null && (!isProduction() || !t.ratesAreSample);
   return (
     <>
-      <section className="container-site pt-4 md:hidden">
+      <div className="section-dark -mt-px pb-8 pt-5 sm:pb-14 sm:pt-8">
+      <section className="container-site md:hidden">
         <SwipeRow label="Room photos" className="[&>div:first-child>*]:!w-[92%]">
           {photos.slice(0, 6).map((p, i) => (
-            <Photo key={i} photo={p} priority={i === 0} className="aspect-[4/3] rounded-[10px]" />
+            <Photo key={i} photo={p} priority={i === 0} className="aspect-[4/3] rounded-[12px]" />
           ))}
         </SwipeRow>
       </section>
-      <section className="container-site hidden gap-3 pt-6 md:grid md:grid-cols-[2fr_1fr]">
-        <Photo photo={photos[0]} priority className="aspect-[16/10] rounded-[10px]" />
+      <section className="container-site hidden gap-4 md:grid md:grid-cols-[2fr_1fr]">
+        <div className="img-zoom overflow-hidden rounded-[12px]"><Photo photo={photos[0]} priority className="aspect-[16/10] h-full rounded-[12px]" /></div>
         <div className="grid gap-3">
-          <Photo photo={photos[1]} className="aspect-[16/10] rounded-[10px]" />
-          <Photo photo={photos[2]} className="aspect-[16/10] rounded-[10px]" />
+          <Photo photo={photos[1]} className="aspect-[16/10] rounded-[12px]" />
+          <Photo photo={photos[2]} className="aspect-[16/10] rounded-[12px]" />
         </div>
       </section>
-      <section className="container-site grid gap-10 py-8 sm:py-12 lg:grid-cols-[1fr_360px]">
+      </div>
+      <section className="container-site grid gap-12 py-12 sm:py-16 lg:grid-cols-[1fr_380px]">
         <div>
           <p className="eyebrow">Accommodation</p>
-          <h1 className="mt-2 text-[34px] leading-tight sm:mt-3 sm:text-[44px]">{t.name}</h1>
-          <p className="mt-3 text-lg text-muted">{t.summary}</p>
+          <h1 className="mt-3 text-[40px] font-light leading-tight sm:mt-4 sm:text-[60px]">{t.name}</h1>
+          <span className="gold-rule mt-5 !w-20" style={{ background: "linear-gradient(90deg, var(--color-gold-400), transparent)" }} />
+          <p className="mt-5 text-lg text-muted">{t.summary}</p>
           {!t.factsConfirmed && !isProduction() && (
             <div className="mt-5">
               <Notice tone="warn">Room facts (occupancy, beds, size) are placeholders awaiting confirmation from Room2Go.</Notice>
@@ -68,9 +71,9 @@ export default async function RoomDetail({ params }: P) {
               ["Children", t.maxChildren ? `up to ${t.maxChildren}` : "not specified"],
               ["Beds", t.bedConfiguration ?? "to be confirmed"],
             ].map(([k, v]) => (
-              <div key={k} className="rounded-md border border-sand bg-cream-50 p-4">
-                <dt className="text-xs uppercase tracking-wider text-muted">{k}</dt>
-                <dd className="mt-1 font-serif text-lg text-forest-900">{v}</dd>
+              <div key={k} className="card p-4 sm:p-5">
+                <dt className="text-[11px] uppercase tracking-[0.18em] text-gold-700">{k}</dt>
+                <dd className="mt-1.5 font-serif text-xl text-forest-900">{v}</dd>
               </div>
             ))}
           </dl>

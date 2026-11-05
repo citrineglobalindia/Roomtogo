@@ -18,7 +18,7 @@ export default async function Contact() {
   return (
     <>
       <PageHero eyebrow="Contact" title={c.title} subtitle={c.subtitle} />
-      <section className="container-site grid gap-10 py-14 lg:grid-cols-[1fr_1.3fr]">
+      <section className="container-site grid gap-12 py-16 sm:py-24 lg:grid-cols-[1fr_1.3fr]">
         <div className="space-y-6">
           <a href={info.phoneHref} data-track="call" className="card flex items-center gap-4 p-5 hover:border-forest-700">
             <Icon name="phone" size={24} className="text-forest-800" />

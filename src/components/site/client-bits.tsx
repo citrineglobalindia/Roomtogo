@@ -34,7 +34,7 @@ export function MobileBookBar({ phoneHref, whatsappHref }: { phoneHref: string; 
   return (
     <div
       aria-hidden={hidden}
-      className={`fixed inset-x-0 bottom-0 z-30 border-t border-sand bg-cream-50/95 backdrop-blur-md transition-transform duration-300 ease-out sm:hidden ${hidden ? "translate-y-full" : "translate-y-0"}`}
+      className={`fixed inset-x-0 bottom-0 z-30 border-t border-gold-300/20 bg-forest-975/90 backdrop-blur-md [&_.btn-outline]:border-gold-300/50 [&_.btn-outline]:text-cream-50 transition-transform duration-300 ease-out sm:hidden ${hidden ? "translate-y-full" : "translate-y-0"}`}
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="flex items-center gap-2 px-4 py-2.5">
@@ -46,7 +46,7 @@ export function MobileBookBar({ phoneHref, whatsappHref }: { phoneHref: string; 
             <Icon name="whatsapp" size={19} />
           </a>
         )}
-        <Link href="/book" tabIndex={hidden ? -1 : 0} className="btn-primary h-12 flex-1 text-[15px]">
+        <Link href="/book" tabIndex={hidden ? -1 : 0} className="btn-gold h-12 flex-1 text-[15px]">
           Check availability <Icon name="arrow" size={16} />
         </Link>
       </div>

@@ -15,13 +15,13 @@ export type SiteInfo = {
   bookingOpen: boolean;
 };
 
-export function Logo({ light = false, className = "" }: { light?: boolean; className?: string }) {
+/** Room2Go logo: the orange brand tile plus a serif wordmark (the tile's own lettering is too small at header size). */
+export function Logo({ light = false, className = "", tileClassName = "", wordmark = true }: { light?: boolean; className?: string; tileClassName?: string; wordmark?: boolean }) {
   return (
-    <span className={`inline-flex items-baseline gap-1 font-serif text-[28px] leading-none tracking-tight ${light ? "text-cream-50" : "text-forest-900"} ${className}`}>
-      room2go
-      <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden className="text-gold-500">
-        <path d="M4 20C4 10 10 4 21 3c-1 11-7 17-17 17Zm0 0 9-9" fill="currentColor" stroke="currentColor" strokeWidth="1" />
-      </svg>
+    <span className={`inline-flex items-center gap-3 font-serif text-[28px] leading-none tracking-tight ${light ? "text-cream-50" : "text-forest-900"} ${className}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/room2go-logo.png" alt={wordmark ? "" : "Room2Go"} width={238} height={423} className={`h-[42px] w-auto shrink-0 drop-shadow-[0_4px_10px_rgb(0_0_0_/_0.25)] ${tileClassName}`} />
+      {wordmark && <span>room2go</span>}
     </span>
   );
 }
@@ -51,10 +51,10 @@ const footerLinks = [
 
 export function SiteFooter({ info }: { info: SiteInfo }) {
   return (
-    <footer className="bg-forest-900 pb-[calc(76px+env(safe-area-inset-bottom))] text-cream-100 sm:pb-0">
+    <footer className="section-dark border-t border-gold-300/20 !bg-forest-975 pb-[calc(76px+env(safe-area-inset-bottom))] text-cream-100 sm:pb-0">
       <div className="container-site grid gap-9 py-12 sm:py-14 md:grid-cols-[1.2fr_1.6fr_1.2fr] md:gap-0">
         <div className="md:pr-10 md:border-r md:border-white/15">
-          <Logo light />
+          <Logo light tileClassName="!h-[72px]" className="!text-[30px]" />
           <p className="mt-3 text-sm text-cream-200/80">A more comfortable tomorrow.</p>
           <p className="mt-6 text-sm text-cream-200/80">{info.address}</p>
         </div>

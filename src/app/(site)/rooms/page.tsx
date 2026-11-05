@@ -13,11 +13,11 @@ export default async function Rooms() {
   return (
     <>
       <PageHero eyebrow="Our rooms" title={c.title} subtitle={c.subtitle} />
-      <section className="container-site py-14">
+      <section className="container-site reveal py-16 sm:py-24">
         {rooms.length === 0 ? (
           <p className="text-center text-muted">Room details are being updated. Please contact us for availability.</p>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-8 md:grid-cols-2">
             {rooms.map((r) => (
               <RoomCard key={r.type.id} room={r.type} photo={r.photo} amenities={r.amenities} fromPaise={r.fromPaise} sample={r.type.ratesAreSample} />
             ))}

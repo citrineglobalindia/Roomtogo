@@ -50,14 +50,15 @@ export function SiteHeader({ phone, phoneHref }: { phone?: string; phoneHref?: s
     };
   }, [open]);
   const active = (h: string) => path === h || path.startsWith(h + "/");
+  const overHero = path === "/" && !scrolled && !open;
   return (
-    <header ref={headerRef} className={`sticky top-0 z-40 border-b transition-shadow duration-200 ${open ? "bg-cream-50" : "bg-cream-100/90 backdrop-blur-md supports-[backdrop-filter]:bg-cream-100/80"} ${scrolled ? "border-sand shadow-[0_6px_20px_-14px_rgb(31_42_36_/_0.35)]" : "border-transparent"}`}>
+    <header ref={headerRef} className={`sticky top-0 z-40 border-b text-cream-100 transition-[background-color,border-color,box-shadow] duration-300 ${open ? "border-gold-300/15 bg-forest-975" : overHero ? "border-transparent bg-transparent" : "border-gold-300/15 bg-forest-975/85 shadow-[0_10px_30px_-18px_rgb(0_0_0_/_0.6)] backdrop-blur-xl"}`}>
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2">
         Skip to content
       </a>
       <div className="container-site flex h-[60px] items-center justify-between gap-4 sm:h-[68px] sm:gap-6">
         <Link href="/" aria-label="Room2Go home" className="-ml-1 p-1">
-          <Logo className="!text-[25px] sm:!text-[28px]" />
+          <Logo light className="!text-[24px] sm:!text-[27px]" tileClassName="!h-[38px] sm:!h-[46px]" />
         </Link>
         <nav aria-label="Main" className="hidden lg:block">
           <ul className="flex items-center gap-8 text-[14px]">
@@ -66,7 +67,7 @@ export function SiteHeader({ phone, phoneHref }: { phone?: string; phoneHref?: s
                 <Link
                   href={h}
                   aria-current={active(h) ? "page" : undefined}
-                  className={`relative py-2 text-ink/80 transition-colors hover:text-forest-800 ${active(h) ? "font-medium text-forest-900 after:absolute after:inset-x-0 after:-bottom-0.5 after:h-[2px] after:bg-gold-500" : ""}`}
+                  className={`relative py-2 text-[13px] uppercase tracking-[0.16em] transition-colors hover:text-gold-300 ${active(h) ? "text-gold-300 after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:bg-gold-400" : "text-cream-100/85"}`}
                 >
                   {l}
                 </Link>
@@ -75,15 +76,15 @@ export function SiteHeader({ phone, phoneHref }: { phone?: string; phoneHref?: s
           </ul>
         </nav>
         <div className="flex items-center gap-1 sm:gap-2">
-          <Link href="/book" className="btn-primary hidden sm:inline-flex">
+          <Link href="/book" className="btn-gold hidden sm:inline-flex">
             Book your stay <Icon name="arrow" size={16} />
           </Link>
-          <Link href="/account" className="hidden p-2 text-forest-800 hover:text-gold-600 lg:inline-flex" aria-label="Your account">
+          <Link href="/account" className="hidden p-2 text-cream-100/85 hover:text-gold-300 lg:inline-flex" aria-label="Your account">
             <Icon name="user" />
           </Link>
           <button
             type="button"
-            className="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-full text-forest-900 transition-colors active:bg-cream-300 lg:hidden"
+            className="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-full text-cream-50 transition-colors active:bg-white/10 lg:hidden"
             aria-expanded={open}
             aria-controls="mobile-nav"
             aria-label={open ? "Close menu" : "Open menu"}
@@ -98,14 +99,14 @@ export function SiteHeader({ phone, phoneHref }: { phone?: string; phoneHref?: s
         </div>
       </div>
       {open && (
-        <div id="mobile-nav" className="animate-fade-down fixed inset-x-0 bottom-0 z-40 overflow-y-auto overscroll-contain border-t border-sand bg-cream-50 lg:hidden" style={{ top: menuTop, paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
+        <div id="mobile-nav" className="animate-fade-down section-dark fixed inset-x-0 bottom-0 z-40 overflow-y-auto overscroll-contain border-t border-gold-300/15 lg:hidden" style={{ top: menuTop, paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
           <nav aria-label="Mobile" className="container-site pt-2">
-            <ul className="divide-y divide-sand">
+            <ul className="divide-y divide-gold-300/15">
               {NAV.map(([l, h]) => (
                 <li key={h}>
-                  <Link href={h} aria-current={active(h) ? "page" : undefined} className={`flex items-center justify-between py-4 font-serif text-[24px] ${active(h) ? "text-gold-600" : "text-forest-900"}`}>
+                  <Link href={h} aria-current={active(h) ? "page" : undefined} className={`flex items-center justify-between py-4 font-serif text-[26px] font-light ${active(h) ? "text-gold-300" : "text-cream-50"}`}>
                     {l}
-                    <Icon name="chevronRight" size={20} className="text-muted" />
+                    <Icon name="chevronRight" size={20} className="text-gold-400/70" />
                   </Link>
                 </li>
               ))}
@@ -113,18 +114,18 @@ export function SiteHeader({ phone, phoneHref }: { phone?: string; phoneHref?: s
             <ul className="mt-4 space-y-1">
               {MORE.map(([l, h]) => (
                 <li key={h}>
-                  <Link href={h} className="block py-2.5 text-[15px] text-ink/80">
+                  <Link href={h} className="block py-2.5 text-[15px] text-cream-100/75">
                     {l}
                   </Link>
                 </li>
               ))}
             </ul>
             <div className="mt-6 grid gap-3">
-              <Link href="/book" className="btn-primary w-full">
+              <Link href="/book" className="btn-gold w-full">
                 Check availability <Icon name="arrow" size={16} />
               </Link>
               {phoneHref && (
-                <a href={phoneHref} data-track="call" className="btn-outline w-full">
+                <a href={phoneHref} data-track="call" className="btn-ghost-light w-full">
                   <Icon name="phone" size={18} /> Call {phone}
                 </a>
               )}
