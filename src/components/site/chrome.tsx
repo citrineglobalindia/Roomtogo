@@ -94,7 +94,16 @@ export function SiteFooter({ info }: { info: SiteInfo }) {
       </div>
       <div className="border-t border-white/10">
         <div className="container-site flex flex-wrap items-center justify-between gap-3 py-5 text-xs text-cream-200/70">
-          <span>© {new Date().getFullYear()} Room2Go. All rights reserved.</span>
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span>© {new Date().getFullYear()} Room2Go. All rights reserved.</span>
+            <span aria-hidden className="text-gold-400/50">·</span>
+            <span>
+              Designed by{" "}
+              <a href="https://stepstones.in" target="_blank" rel="noopener" className="font-medium text-gold-300 hover:text-gold-200">
+                Stepstones
+              </a>
+            </span>
+          </span>
           <span className="flex flex-wrap gap-x-5 gap-y-1">
             <Link href="/privacy" className="py-1.5 hover:text-gold-300">Privacy</Link>
             <Link href="/terms" className="py-1.5 hover:text-gold-300">Terms</Link>
