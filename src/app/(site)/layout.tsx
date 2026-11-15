@@ -1,6 +1,7 @@
 import Script from "next/script";
 import { ConsentBanner, ContactClickTracker, MobileBookBar } from "@/components/site/client-bits";
 import { DemoBanner, SiteFooter } from "@/components/site/chrome";
+import { BackToTop } from "@/components/site/booking-ui";
 import { SiteHeader } from "@/components/site/header";
 import { analyticsConfig } from "@/lib/config";
 import { getSiteInfo } from "@/lib/site";
@@ -18,6 +19,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <main id="main">
         {children}
       </main>
+      <BackToTop />
       <SiteFooter info={info} />
       <MobileBookBar phoneHref={info.phoneHref} whatsappHref={info.whatsappHref} />
       <ContactClickTracker />

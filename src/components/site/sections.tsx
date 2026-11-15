@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SearchButton, StayDates } from "./booking-ui";
 import { Icon } from "@/components/ui/icons";
 import { formatINR } from "@/lib/money";
 import { addDays } from "@/lib/dates";
@@ -109,14 +110,7 @@ export function BookingSearchPanel({
         </div>
       )}
       <div className={`grid gap-x-3 gap-y-3 [&>label]:min-w-0 ${compact ? "grid-cols-2 lg:grid-cols-6 lg:items-end" : "grid-cols-2"}`}>
-        <label className={compact ? "lg:col-span-1" : "col-span-1"}>
-          <span className="field-label">Check-in</span>
-          <input className="field" type="date" name="checkIn" min={today} max={addDays(today, 365)} defaultValue={ci} required />
-        </label>
-        <label className={compact ? "lg:col-span-1" : "col-span-1"}>
-          <span className="field-label">Check-out</span>
-          <input className="field" type="date" name="checkOut" min={addDays(today, 1)} max={addDays(today, 400)} defaultValue={co} required />
-        </label>
+        <StayDates today={today} checkIn={ci} checkOut={co} dark={dark} compact={compact} />
         <label>
           <span className="field-label">Adults</span>
           <select className="field" name="adults" defaultValue={String(defaults?.adults ?? 2)}>
@@ -152,9 +146,9 @@ export function BookingSearchPanel({
             ))}
           </select>
         </label>
-        <button className={`${dark ? "btn-gold" : "btn-primary"} mt-1 w-full ${compact ? "col-span-2 lg:col-span-6" : "col-span-2"}`} type="submit">
+        <SearchButton className={`${dark ? "btn-gold" : "btn-primary"} mt-1 w-full ${compact ? "col-span-2 lg:col-span-6" : "col-span-2"}`}>
           Check availability <Icon name="arrow" size={16} />
-        </button>
+        </SearchButton>
       </div>
       {!compact && <p className={`mt-3 text-[11px] ${dark ? "text-cream-200/60" : "text-muted"}`}>Rates and availability are confirmed on the next step.</p>}
     </form>
