@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Contact() {
   const [c, info, s] = await Promise.all([getContent("contact"), getSiteInfo(), getSettings()]);
-  const mapEmbed = info.mapUrl && s.mapLat && s.mapLng ? `https://www.google.com/maps?q=${encodeURIComponent(`${s.mapLat},${s.mapLng}`)}&output=embed` : null;
+  const mapEmbed = info.mapEmbedUrl;
   return (
     <>
       <PageHero eyebrow="Contact" title={c.title} subtitle={c.subtitle} />
@@ -51,10 +51,17 @@ export default async function Contact() {
             </p>
             {mapEmbed ? (
               <>
-                <iframe title="Map showing Room2Go" src={mapEmbed} loading="lazy" className="mt-4 h-64 w-full rounded-md border-0" referrerPolicy="no-referrer-when-downgrade" />
-                <a href={info.mapUrl!} target="_blank" rel="noopener" className="btn-outline btn-sm mt-3">
-                  Get directions <Icon name="arrow" size={14} />
-                </a>
+                <iframe title="Map showing Room2Go" src={mapEmbed} loading="lazy" className="mt-4 h-72 w-full rounded-md border-0 sm:h-80" referrerPolicy="no-referrer-when-downgrade" allowFullScreen />
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a href={info.directionsUrl!} target="_blank" rel="noopener" className="btn-primary btn-sm">
+                    Get directions <Icon name="arrow" size={14} />
+                  </a>
+                  {info.mapUrl && (
+                    <a href={info.mapUrl} target="_blank" rel="noopener" className="btn-outline btn-sm">
+                      View on Google Maps
+                    </a>
+                  )}
+                </div>
               </>
             ) : (
               <p className="mt-3 text-xs text-muted">Exact map pin and directions will be added once confirmed by the property.</p>

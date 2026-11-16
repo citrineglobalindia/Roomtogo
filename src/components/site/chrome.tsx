@@ -10,6 +10,8 @@ export type SiteInfo = {
   whatsappHref: string | null;
   whatsappConfirmed: boolean;
   mapUrl: string | null;
+  mapEmbedUrl?: string | null;
+  directionsUrl?: string | null;
   socials: Record<string, string>;
   demo: boolean;
   bookingOpen: boolean;

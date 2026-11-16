@@ -77,7 +77,7 @@ export default async function Confirmation({ searchParams }: { searchParams: Pro
           <div>
             <p className="font-medium">Getting here</p>
             <p className="text-muted">{info.address}</p>
-            {info.mapUrl && <a className="text-forest-800 underline" href={info.mapUrl} target="_blank" rel="noopener">Directions</a>}
+            {info.directionsUrl && <a className="text-forest-800 underline" href={info.directionsUrl} target="_blank" rel="noopener">Directions</a>}
           </div>
           <div>
             <p className="font-medium">Questions?</p>

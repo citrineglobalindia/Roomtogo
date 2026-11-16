@@ -214,15 +214,33 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
               </a>
             </li>
           </ul>
-          {info.mapUrl ? (
-            <a href={info.mapUrl} target="_blank" rel="noopener" className="btn-outline mt-8">
-              View on Google Maps <Icon name="arrow" size={14} />
-            </a>
+          {info.directionsUrl ? (
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a href={info.directionsUrl} target="_blank" rel="noopener" className="btn-primary">
+                Get directions <Icon name="arrow" size={14} />
+              </a>
+              {info.mapUrl && (
+                <a href={info.mapUrl} target="_blank" rel="noopener" className="btn-outline">
+                  View on Google Maps
+                </a>
+              )}
+            </div>
           ) : (
             <p className="mt-6 text-xs text-muted">Map pin to be confirmed by the property.</p>
           )}
         </div>
       </section>
+
+      {/* MAP */}
+      {info.mapEmbedUrl && (
+        <section className="container-site reveal pb-20 sm:pb-28" aria-label="Map">
+          <div className="frame-gold mr-3 rounded-[14px]">
+            <div className="overflow-hidden rounded-[14px] border border-gold-300/40 shadow-[var(--shadow-lux)]">
+              <iframe title="Map showing Room2Go in J. P. Nagar, Bengaluru" src={info.mapEmbedUrl} loading="lazy" className="block h-[320px] w-full border-0 sm:h-[420px]" referrerPolicy="no-referrer-when-downgrade" allowFullScreen />
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* FAQ */}
       {faqs.length > 0 && (
