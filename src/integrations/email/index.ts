@@ -22,7 +22,9 @@ class SmtpAdapter implements EmailAdapter {
     });
   }
   async send(msg: OutgoingEmail): Promise<SendResult> {
-    const info = await this.transport.sendMail({ from: this.cfg.from, to: msg.to, subject: msg.subject, html: msg.html, text: msg.text });
+    // Optional Reply-To (e.g. the property's inbox) when sending from a no-inbox address like bookings@
+    const replyTo = process.env.EMAIL_REPLY_TO || undefined;
+    const info = await this.transport.sendMail({ from: this.cfg.from, replyTo, to: msg.to, subject: msg.subject, html: msg.html, text: msg.text });
     return { status: "sent", providerMessageId: info.messageId ?? null };
   }
 }
