@@ -26,12 +26,16 @@ export function setConsent(v: "granted" | "denied") {
   try {
     localStorage.setItem(CONSENT_KEY, v);
   } catch {}
+  // Google consent mode: tell GTM/GA what the visitor chose (tags fire only once analytics is granted)
+  window.dataLayer = window.dataLayer ?? [];
+  if (window.gtag) window.gtag("consent", "update", { analytics_storage: v });
+  window.dataLayer.push({ event: "r2g_consent_update", analytics_consent: v });
   window.dispatchEvent(new Event("r2g-consent"));
 }
 
 export function track(event: "search_availability" | "begin_checkout" | "generate_lead" | "contact_click" | "purchase", params: Params = {}) {
   if (typeof window === "undefined") return;
-  const provider = process.env.NEXT_PUBLIC_ANALYTICS_PROVIDER ?? "none";
+  const provider = process.env.NEXT_PUBLIC_ANALYTICS_PROVIDER ?? "gtm";
   if (provider === "none" || getConsent() !== "granted") return;
   const clean: Params = {};
   for (const [k, v] of Object.entries(params)) if (ALLOWED.has(k) && v !== undefined) clean[k] = v;

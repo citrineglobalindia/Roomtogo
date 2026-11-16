@@ -155,10 +155,13 @@ export function requireOwnerMfa(): boolean {
   return bool(process.env.REQUIRE_OWNER_MFA, isProduction());
 }
 
+/** Room2Go's Google Tag Manager container; NEXT_PUBLIC_* env vars override it. */
+export const DEFAULT_GTM_ID = "GTM-5PBS9ZDC";
+
 export function analyticsConfig() {
   return {
-    provider: (process.env.NEXT_PUBLIC_ANALYTICS_PROVIDER ?? "none") as "none" | "ga4" | "gtm",
+    provider: (process.env.NEXT_PUBLIC_ANALYTICS_PROVIDER ?? "gtm") as "none" | "ga4" | "gtm",
     ga4Id: process.env.NEXT_PUBLIC_GA4_ID ?? "",
-    gtmId: process.env.NEXT_PUBLIC_GTM_ID ?? "",
+    gtmId: process.env.NEXT_PUBLIC_GTM_ID ?? DEFAULT_GTM_ID,
   };
 }

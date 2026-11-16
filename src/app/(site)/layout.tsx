@@ -24,6 +24,22 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <MobileBookBar phoneHref={info.phoneHref} whatsappHref={info.whatsappHref} />
       <ContactClickTracker />
       <ConsentBanner enabled={info.analytics} />
+      {a.provider === "gtm" && /^GTM-[A-Z0-9]+$/.test(a.gtmId) && (
+        <>
+          {/* Google Tag Manager with consent mode v2: analytics cookies stay off until the visitor allows them */}
+          <Script id="gtm" strategy="afterInteractive">{`
+            window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)};window.gtag=gtag;
+            var c=null;try{c=localStorage.getItem('r2g_analytics_consent')}catch(e){}
+            gtag('consent','default',{analytics_storage:c==='granted'?'granted':'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',wait_for_update:500});
+            gtag('js',new Date());
+            dataLayer.push({'gtm.start':new Date().getTime(),event:'gtm.js'});
+            var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtm.js?id=${a.gtmId}';document.head.appendChild(s);
+          `}</Script>
+          <noscript>
+            <iframe src={`https://www.googletagmanager.com/ns.html?id=${a.gtmId}`} height="0" width="0" style={{ display: "none", visibility: "hidden" }} title="Google Tag Manager" />
+          </noscript>
+        </>
+      )}
       {a.provider === "ga4" && a.ga4Id && (
         <Script id="ga4" strategy="afterInteractive">{`
           window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)};window.gtag=gtag;

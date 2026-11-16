@@ -75,11 +75,11 @@ export function ConsentBanner({ enabled }: { enabled: boolean }) {
   }, [enabled]);
   if (!show) return null;
   return (
-    <div role="dialog" aria-label="Analytics consent" className="fixed inset-x-3 bottom-20 z-40 mx-auto max-w-xl rounded-lg border border-sand bg-white p-4 text-sm shadow-lg sm:bottom-4">
-      <p>We use privacy-friendly analytics to understand which pages help guests book. No personal details are shared. Allow analytics?</p>
+    <div role="region" aria-label="Analytics consent" className="animate-fade-up fixed inset-x-3 bottom-[calc(84px+env(safe-area-inset-bottom))] z-40 mx-auto max-w-xl rounded-[12px] border border-gold-300/30 bg-forest-975/95 p-4 text-sm text-cream-100 shadow-[var(--shadow-lux)] backdrop-blur-xl sm:bottom-5 sm:left-5 sm:right-auto sm:mx-0 sm:p-5">
+      <p className="text-cream-100/90">We use privacy-friendly analytics to understand which pages help guests book. No personal details are shared. Allow analytics cookies?</p>
       <div className="mt-3 flex gap-2">
-        <button className="btn-primary btn-sm" onClick={() => (setConsent("granted"), setShow(false))}>Allow</button>
-        <button className="btn-outline btn-sm" onClick={() => (setConsent("denied"), setShow(false))}>Decline</button>
+        <button className="btn-gold btn-sm" onClick={() => (setConsent("granted"), setShow(false))}>Allow</button>
+        <button className="btn-ghost-light btn-sm" onClick={() => (setConsent("denied"), setShow(false))}>Decline</button>
       </div>
     </div>
   );
