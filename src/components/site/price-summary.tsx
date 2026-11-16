@@ -33,8 +33,8 @@ export function PriceSummary({ quote, showNights = true }: { quote: Quote; showN
         {quote.taxLines.length === 0 && <Row k="Taxes" v="Not configured" muted />}
         <div className="my-2 border-t border-sand" />
         <Row k="Total" v={formatINR(quote.totalPaise)} strong />
-        <Row k="Payable now" v={formatINR(quote.dueNowPaise)} strong />
-        {quote.balanceLaterPaise > 0 && <Row k="Balance due at the property" v={formatINR(quote.balanceLaterPaise)} />}
+        <Row k="Payable now (online)" v={formatINR(0)} />
+        <Row k="Pay later — UPI or at the property" v={formatINR(quote.totalPaise)} />
       </dl>
       {quote.sampleRates && <p className="badge-sample">Sample rates — not Room2Go prices</p>}
     </div>

@@ -92,3 +92,27 @@ export function TrackOnMount({ event, params }: { event: Parameters<typeof track
   }, []);
   return null;
 }
+
+/**
+ * Google Ads / GTM conversion signal for an OTP-confirmed reservation.
+ * Rendered by the server only on the first view of a newly saved reservation (conversion_tracked_at is
+ * claimed atomically), and guarded again in the browser per reservation ID — so a refresh, back/forward
+ * or re-render never pushes a duplicate. Contains no personal data.
+ */
+export function ReservationConfirmedEvent({ reservationId }: { reservationId: string }) {
+  useEffect(() => {
+    const key = `r2g_resv_evt_${reservationId}`;
+    try {
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, "1");
+    } catch {}
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      event: "room2go_reservation_confirmed",
+      reservation_id: reservationId,
+      reservation_status: "otp_confirmed",
+      booking_source: "website",
+    });
+  }, [reservationId]);
+  return null;
+}

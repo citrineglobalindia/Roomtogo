@@ -22,24 +22,40 @@ export function day(offset: number) {
   return now.toISOString().slice(0, 10);
 }
 
-export async function bookAsGuest(page: Page, o: { checkIn: string; checkOut: string; email: string; name?: string; roomIndex?: number }) {
+/** Fill the checkout form up to (not including) Confirm Reservation. */
+export async function fillGuestDetails(page: Page, o: { checkIn: string; checkOut: string; email: string; name?: string; roomIndex?: number }) {
   await page.goto(`/book?checkIn=${o.checkIn}&checkOut=${o.checkOut}&adults=2&children=0&rooms=1`);
   await page.getByRole("link", { name: "Select" }).nth(o.roomIndex ?? 0).click();
   await page.waitForURL(/\/checkout\?/);
   await page.fill("input[name=leadName]", o.name ?? "E2E Guest");
-  await page.fill("input[name=leadEmail]", o.email);
   await page.fill("input[name=leadPhone]", "+91 98765 43210");
+  await page.fill("input[name=leadEmail]", o.email);
   await page.check("input[name=acceptPolicies]");
-  await page.getByRole("button", { name: /Reserve/ }).click();
-  await page.waitForURL(/\/checkout\/pay\//);
-  const ref = page.url().split("/").pop()!.split("?")[0];
-  return ref;
 }
 
-export async function payDemo(page: Page, outcome: "Simulate successful payment" | "Simulate failed payment" | "Simulate payment, then browser closed (tests recovery)") {
-  await page.getByRole("link", { name: /Continue to DEMO payment/ }).click();
-  await page.waitForURL(/demo-gateway/);
-  await page.getByRole("button", { name: outcome }).click();
+/** Test-only: read the last OTP the e2e server generated for this email (E2E_OTP_ECHO). */
+export async function testOtp(page: Page, email: string) {
+  const r = await page.request.get(`/api/test/otp?email=${encodeURIComponent(email)}`);
+  const { code } = (await r.json()) as { code: string | null };
+  expect(code).toMatch(/^\d{6}$/);
+  return code!;
+}
+
+export async function verifyEmail(page: Page, email: string) {
+  await page.getByRole("button", { name: /Send OTP|Resend OTP/ }).click();
+  await expect(page.getByText(/emailed you a 6-digit code/)).toBeVisible();
+  await page.getByLabel("One-time code").fill(await testOtp(page, email));
+  await page.getByRole("button", { name: "Verify OTP" }).click();
+  await expect(page.getByText(/Email verified/)).toBeVisible();
+}
+
+/** Full website reservation: details → OTP → Confirm Reservation. Returns the reservation ID. */
+export async function bookAsGuest(page: Page, o: { checkIn: string; checkOut: string; email: string; name?: string; roomIndex?: number }) {
+  await fillGuestDetails(page, o);
+  await verifyEmail(page, o.email);
+  await page.getByRole("button", { name: "Confirm Reservation" }).click();
+  await page.waitForURL(/\/booking\/confirmation\?ref=/);
+  return (await page.getByTestId("reservation-id").innerText()).trim();
 }
 
 export async function latestCode(page: Page, email: string) {

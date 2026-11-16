@@ -41,7 +41,7 @@ export function bookingConfirmedEmail(b: B, rooms: string, s: Settings, manageUr
     s.checkInTime && s.checkOutTime ? `<p>Check-in from ${esc(s.checkInTime)} · Check-out by ${esc(s.checkOutTime)}</p>` : "";
   const html = emailLayout(
     "Your stay is confirmed",
-    `${demoNote(b)}<p>Dear ${esc(b.leadName)},</p><p>Thank you for booking directly with Room2Go. Your reservation is confirmed.</p>${summary(b, rooms)}${times}
+    `${demoNote(b)}<p>Dear ${esc(b.leadName)},</p><p>Thank you for booking directly with Room2Go. Your reservation is confirmed.</p>${summary(b, rooms)}${times}${b.amountPaidPaise === 0 ? `<p><strong>Payment:</strong> nothing has been charged. Pay later by UPI QR or at the property.</p>` : ""}
 <p><strong>Address:</strong> ${esc(s.addressLine)}, ${esc(s.city)} ${esc(s.postalCode)}${s.mapUrl ? ` · <a href="${esc(s.mapUrl)}">Directions</a>` : ""}</p>
 <p><a href="${esc(manageUrl)}" style="display:inline-block;background:#173d2f;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">View or manage your booking</a></p>
 <p style="font-size:12px;color:#6b6b63">This link is personal — please don't forward it. Questions? Call ${esc(s.phone)} or reply to ${esc(s.email)}.</p>`,
@@ -92,6 +92,14 @@ export function requestReceivedEmail(b: B, kind: string) {
     `<p>Dear ${esc(b.leadName)},</p><p>We have received your ${esc(kind.replace("_", " "))} request for booking <strong>${esc(b.reference)}</strong>. It is not yet approved — our team will review it and reply by email.</p>`,
   );
   return { subject: `Request received — ${b.reference}`, html, text: `We received your ${kind} request for ${b.reference}. It is pending staff review.` };
+}
+
+export function reservationOtpEmail(code: string, minutes: number) {
+  const html = emailLayout(
+    "Your Room2Go verification code",
+    `<p>Use this code to confirm your reservation at Room2Go:</p><p style="font-size:30px;letter-spacing:8px;font-weight:bold">${esc(code)}</p><p style="font-size:12px;color:#6b6b63">The code expires in ${minutes} minutes. If you didn't try to reserve a room, you can ignore this email — no reservation is made without this code.</p>`,
+  );
+  return { subject: `${code} is your Room2Go verification code`, html, text: `Your Room2Go verification code is ${code}. It expires in ${minutes} minutes.` };
 }
 
 export function otpEmail(reference: string, code: string) {

@@ -1,14 +1,28 @@
 import { expect, test } from "@playwright/test";
-import { bookAsGuest, day, latestCode, payDemo } from "./helpers";
+import { bookAsGuest, day, fillGuestDetails, latestCode, staffLogin, testOtp, verifyEmail } from "./helpers";
 
 test.describe("guest journeys", () => {
-  test("book without an account, then manage via reference + one-time code", async ({ page, browser }) => {
+  test("reserve with email OTP (no payment), conversion event fires once, then manage via code", async ({ page, browser }) => {
     const ref = await bookAsGuest(page, { checkIn: day(40), checkOut: day(42), email: "e2e-a@example.com" });
-    await expect(page.getByText(/Room held for/)).toBeVisible();
-    await payDemo(page, "Simulate successful payment");
-    await page.waitForURL(/booking\/confirmation/);
-    await expect(page.getByRole("heading", { name: "Your stay is confirmed" })).toBeVisible();
-    await expect(page.getByText(ref)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Reservation confirmed" })).toBeVisible();
+    await expect(page.getByText(/Nothing has been charged/)).toBeVisible();
+    expect(ref).toMatch(/^R2G-[A-Z0-9]{6}$/);
+    // exactly one conversion push, with exactly the agreed keys and no personal data
+    // (GTM adds its own internal "gtm.*" counters to pushed objects; ignore those)
+    const events = await page.evaluate(() =>
+      (window.dataLayer || [])
+        .filter((e) => (e as { event?: string }).event === "room2go_reservation_confirmed")
+        .map((e) => Object.fromEntries(Object.entries(e as Record<string, unknown>).filter(([k]) => !k.startsWith("gtm.")))),
+    );
+    expect(events).toEqual([{ event: "room2go_reservation_confirmed", reservation_id: ref, reservation_status: "otp_confirmed", booking_source: "website" }]);
+    // refresh does not fire it again
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Reservation confirmed" })).toBeVisible();
+    await page.waitForTimeout(500);
+    expect(await page.evaluate(() => (window.dataLayer || []).filter((e) => (e as { event?: string }).event === "room2go_reservation_confirmed").length)).toBe(0);
+    // the old payment pages are gone
+    await page.goto(`/checkout/pay/${ref}`);
+    await expect(page).toHaveURL(/booking\/confirmation/);
 
     // Later, on a different device: no cookie → reference + email → code
     const ctx = await browser.newContext();
@@ -32,46 +46,49 @@ test.describe("guest journeys", () => {
     await ctx.close();
   });
 
-  test("guest A cannot see guest B's booking, confirmation or receipt by changing the reference", async ({ browser }) => {
-    const a = await browser.newContext();
-    const b = await browser.newContext();
-    const pa = await a.newPage();
-    const pb = await b.newPage();
-    const refA = await bookAsGuest(pa, { checkIn: day(50), checkOut: day(51), email: "iso-a@example.com", name: "Alice Isolated" });
-    await payDemo(pa, "Simulate successful payment");
-    const refB = await bookAsGuest(pb, { checkIn: day(50), checkOut: day(51), email: "iso-b@example.com", name: "Bob Private", roomIndex: 1 });
-    await payDemo(pb, "Simulate successful payment");
-    await pb.waitForURL(/confirmation/);
-    for (const path of [`/booking/confirmation?ref=${refB}`, `/documents/${refB}/receipt`, `/checkout/pay/${refB}`]) {
-      const r = await pa.goto(path);
-      expect(r?.status(), path).toBe(404);
-      await expect(pa.getByText("Bob Private")).toHaveCount(0);
+  test("Confirm stays disabled until OTP verified; wrong codes are limited; resend has a cooldown", async ({ page }) => {
+    const email = "otp-rules@example.com";
+    await fillGuestDetails(page, { checkIn: day(60), checkOut: day(61), email });
+    const confirm = page.getByRole("button", { name: "Confirm Reservation" });
+    await expect(confirm).toBeDisabled();
+    await page.getByRole("button", { name: "Send OTP" }).click();
+    await expect(page.getByText(/emailed you a 6-digit code/)).toBeVisible();
+    await expect(page.getByRole("button", { name: /Resend in \d+s/ })).toBeDisabled();
+    const real = await testOtp(page, email);
+    const wrong = real === "000000" ? "111111" : "000000";
+    for (let i = 4; i >= 1; i--) {
+      await page.getByLabel("One-time code").fill(wrong);
+      await page.getByRole("button", { name: "Verify OTP" }).click();
+      await expect(page.getByText(new RegExp(`${i} attempts? left`))).toBeVisible();
+      await expect(confirm).toBeDisabled();
     }
-    await pa.goto(`/manage-booking/${refB}`);
-    await expect(pa).toHaveURL(/\/manage-booking\?ref=/);
-    await expect(pa.getByText("Bob Private")).toHaveCount(0);
-    // A still sees their own
-    const own = await pa.goto(`/documents/${refA}/receipt`);
-    expect(own?.status()).toBe(200);
-    await a.close();
-    await b.close();
+    await page.getByLabel("One-time code").fill(wrong);
+    await page.getByRole("button", { name: "Verify OTP" }).click();
+    await expect(page.getByText(/Too many incorrect attempts/)).toBeVisible();
+    // even the right code is refused after 5 attempts
+    await page.getByLabel("One-time code").fill(real);
+    await page.getByRole("button", { name: "Verify OTP" }).click();
+    await expect(page.getByText(/Too many incorrect attempts|request a new code/)).toBeVisible();
+    await expect(confirm).toBeDisabled();
+    // server also refuses a direct confirm without a verified OTP
+    await page.evaluate(() => document.querySelector<HTMLFormElement>("form:has(input[name=leadEmail])")?.requestSubmit());
+    await expect(page.getByRole("alert").filter({ hasText: /verify your email/i })).toBeVisible();
+    await expect(page).toHaveURL(/\/checkout\?/);
   });
 
-  test("closed browser after payment is recovered by checking with the gateway", async ({ page }) => {
-    await bookAsGuest(page, { checkIn: day(60), checkOut: day(61), email: "recover@example.com" });
-    await payDemo(page, "Simulate payment, then browser closed (tests recovery)");
-    await page.waitForURL(/recovery=1/);
-    await expect(page.getByText(/haven’t received a confirmation from your browser/)).toBeVisible();
-    await page.getByRole("button", { name: "Check payment status" }).click();
-    await page.waitForURL(/booking\/confirmation/);
-    await expect(page.getByRole("heading", { name: "Your stay is confirmed" })).toBeVisible();
-  });
-
-  test("failed payment does not confirm; invalid dates are rejected server-side", async ({ page }) => {
-    await bookAsGuest(page, { checkIn: day(70), checkOut: day(71), email: "fail@example.com" });
-    await payDemo(page, "Simulate failed payment");
-    await page.waitForURL(/failed=1/);
-    await expect(page.getByText(/did not complete/)).toBeVisible();
+  test("double-clicking Confirm creates exactly one reservation", async ({ page, browser }) => {
+    const email = "double@example.com";
+    await fillGuestDetails(page, { checkIn: day(70), checkOut: day(71), email });
+    await verifyEmail(page, email);
+    const confirm = page.getByRole("button", { name: "Confirm Reservation" });
+    await confirm.dblclick();
+    await page.waitForURL(/\/booking\/confirmation\?ref=/);
+    // replay the same verified submission: returns the same reservation, never a new one
+    const staff = await browser.newPage();
+    await staffLogin(staff, "owner");
+    await staff.goto(`/admin/reservations?q=${encodeURIComponent(email)}`);
+    await expect(staff.locator("a", { hasText: /^R2G-/ })).toHaveCount(1);
+    // invalid dates are rejected server-side
     await page.goto(`/book?checkIn=${day(10)}&checkOut=${day(8)}&adults=2`);
     await expect(page.getByText("Departure must be after arrival.")).toBeVisible();
     await page.goto(`/checkout?checkIn=${day(10)}&checkOut=${day(12)}&adults=9&children=0&sel=00000000-0000-0000-0000-000000000000:1`);

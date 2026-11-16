@@ -26,6 +26,7 @@ import {
   roomTypes,
   roomUnits,
   user,
+  reservationOtps,
 } from "@/db/schema";
 import { audit, type Actor } from "@/lib/audit";
 import { isDemoMode } from "@/lib/config";
@@ -33,7 +34,7 @@ import { addDays, diffDays, isIsoDate, todayInTz } from "@/lib/dates";
 import { AllocationError, UserError } from "@/lib/errors";
 import { bookingReference, keyedHash, randomToken, safeEqual } from "@/lib/tokens";
 import { allocateRooms, reallocateBooking, releaseBookingNights, type AllocationRequest } from "./inventory";
-import { enqueue, link } from "./notifications";
+import { enqueue, link, processOutbox } from "./notifications";
 import { distributeGuests, PricingError, quoteStay, type Quote } from "./pricing";
 import { getSettings, onlineBookingStatus, type Settings } from "./settings";
 import {
@@ -253,6 +254,87 @@ export async function createWebsiteBooking(input: WebsiteBookingInput) {
     });
     return { booking: b, token };
   });
+}
+
+/**
+ * Website reservation confirmed by email OTP — no payment at booking time (UPI/at property later).
+ * Idempotent: the verified OTP row is locked and can create exactly one reservation; a retry or double
+ * click returns the reservation already created with it.
+ */
+export async function createOtpReservation(input: Omit<WebsiteBookingInput, "userId"> & { userId?: string | null }, otpId: string) {
+  const status = await onlineBookingStatus();
+  if (!input.acceptPolicies) throw new UserError("Please accept the booking terms and cancellation policy to continue.");
+  const s = await getSettings();
+  const email = input.leadEmail.trim().toLowerCase();
+
+  const result = await db.transaction(async (tx) => {
+    const [otp] = await tx.select().from(reservationOtps).where(eq(reservationOtps.id, otpId)).for("update");
+    if (!otp || otp.email !== email || !otp.verifiedAt) throw new UserError("Please verify your email with the code we sent before confirming.", "otp_required");
+    if (otp.consumedBookingId) {
+      const [existing] = await tx.select().from(bookings).where(eq(bookings.id, otp.consumedBookingId));
+      if (existing) return { booking: existing, token: null as string | null, replay: true };
+    }
+    if (!status.open) throw new UserError("Online reservations aren't available right now. Please call us or send an enquiry.");
+    const { quote, occupancy } = await quoteSelection(input, s, tx);
+    if (input.displayedTotalPaise != null && input.displayedTotalPaise !== quote.totalPaise) {
+      throw new UserError("The price for your stay has changed since you started. Please review the updated total and try again.", "price_changed");
+    }
+    const policies = await currentPolicies(tx);
+    if (!policies.cancellation || !policies.terms) throw new UserError("Booking policies are not yet published. Please send an enquiry instead.");
+    const guest = await upsertGuest(tx, { name: input.leadName, email, phone: input.leadPhone, marketingOptIn: input.marketingOptIn, userId: input.userId });
+    const now = new Date();
+    const [b] = await tx
+      .insert(bookings)
+      .values({
+        reference: bookingReference(),
+        status: "confirmed",
+        reservationStatus: "reservation_confirmed",
+        confirmationMethod: "email_otp",
+        emailVerifiedAt: otp.verifiedAt,
+        source: "website",
+        checkIn: input.checkIn,
+        checkOut: input.checkOut,
+        nights: quote.nights,
+        adults: input.adults,
+        children: input.children,
+        roomsCount: occupancy.length,
+        guestId: guest.id,
+        userId: input.userId ?? null,
+        leadName: input.leadName,
+        leadEmail: email,
+        leadPhone: input.leadPhone,
+        arrivalEta: input.arrivalEta || null,
+        specialRequests: input.specialRequests || null,
+        subtotalPaise: quote.subtotalPaise,
+        extrasPaise: quote.extrasPaise,
+        discountPaise: quote.discountPaise,
+        taxPaise: quote.taxPaise,
+        totalPaise: quote.totalPaise,
+        // Nothing is charged online; the full amount is payable later (UPI QR or at the property).
+        dueNowPaise: 0,
+        priceSnapshot: quote,
+        policySnapshot: policySnapshot(s, policies),
+        policyAcceptedAt: now,
+        marketingOptIn: input.marketingOptIn,
+        isDemo: isDemoMode(),
+        confirmedAt: now,
+      })
+      .returning();
+    const allocated = await allocateRooms(tx, b.id, input.checkIn, input.checkOut, occupancy as AllocationRequest[], { directOnly: true });
+    await writeNightsSnapshot(tx, quote, allocated);
+    await tx.update(reservationOtps).set({ consumedBookingId: b.id }).where(eq(reservationOtps.id, otp.id));
+    const token = await issueManageToken(tx, b.id, b.checkOut);
+    await audit(tx, { type: "guest", label: email.replace(/(.).+@/, "$1***@") }, "booking.reservation_confirmed", "booking", b.id, null, {
+      reference: b.reference,
+      totalPaise: b.totalPaise,
+      method: "email_otp",
+      units: allocated.map((a) => a.unitLabel),
+    });
+    await queueConfirmationMessages(tx, b, token, s);
+    return { booking: b, token, replay: false };
+  });
+  if (!result.replay) await processOutbox(10).catch(() => undefined);
+  return result;
 }
 
 export type ManualBookingInput = {

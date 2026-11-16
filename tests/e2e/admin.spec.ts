@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { bookAsGuest, day, payDemo, staffLogin } from "./helpers";
+import { bookAsGuest, day, staffLogin } from "./helpers";
 
 test.describe("staff journeys", () => {
   test("owner: offline phone booking blocks the website sale for the last unit", async ({ page, browser }) => {
@@ -25,8 +25,6 @@ test.describe("staff journeys", () => {
   test("reception sees no refund controls and is redirected from owner modules", async ({ page, browser }) => {
     const g = await browser.newPage();
     const ref = await bookAsGuest(g, { checkIn: day(85), checkOut: day(86), email: "rcpt@example.com" });
-    await payDemo(g, "Simulate successful payment");
-    await g.waitForURL(/confirmation/);
     await staffLogin(page, "reception");
     await page.goto(`/admin/reservations?q=${ref}`);
     await page.getByRole("link", { name: ref }).click();

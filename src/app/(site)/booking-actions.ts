@@ -3,13 +3,12 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import type { ActionState } from "@/components/ui/form";
 import { db } from "@/db";
-import { bookings, paymentOrders } from "@/db/schema";
-import { createGuestRequest, createWebsiteBooking } from "@/domain/booking";
+import { bookings } from "@/db/schema";
+import { createGuestRequest, createOtpReservation } from "@/domain/booking";
+import { sendReservationOtp, verifiedOtpFor, verifyReservationOtp } from "@/domain/reservation-otp";
 import { grantBookingAccess, requestAccessCode, verifyAccessCode } from "@/domain/guest-access";
-import { reconcilePayments, verifyCheckoutReturn } from "@/domain/payments";
-import { DemoPaymentAdapter } from "@/integrations/payments/demo";
+import { reconcilePayments } from "@/domain/payments";
 import { bookingForViewer } from "@/lib/booking-access";
-import { isDemoMode, paymentConfig } from "@/lib/config";
 import { safeMessage, UserError } from "@/lib/errors";
 import { clientKey } from "@/lib/request";
 import { getSession } from "@/lib/staff";
@@ -22,7 +21,31 @@ const str = (fd: FormData, k: string) => {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE_RE = /^[+\d][\d\s-]{6,19}$/;
 
-export async function createHoldAction(_: ActionState, fd: FormData): Promise<ActionState> {
+/* ---------------- Email-OTP reservation (no online payment) ---------------- */
+
+export type OtpResult = { ok: true; message: string; resendInSeconds?: number } | { ok: false; error: string; resendInSeconds?: number };
+
+export async function sendReservationOtpAction(email: string): Promise<OtpResult> {
+  try {
+    const r = await sendReservationOtp(String(email ?? ""), await clientKey());
+    return { ok: true, message: "We've emailed you a 6-digit code. It expires in 10 minutes.", resendInSeconds: r.resendInSeconds };
+  } catch (e) {
+    const msg = safeMessage(e);
+    const wait = /wait (\d+) seconds/.exec(msg);
+    return { ok: false, error: msg, resendInSeconds: wait ? Number(wait[1]) : undefined };
+  }
+}
+
+export async function verifyReservationOtpAction(email: string, code: string): Promise<OtpResult> {
+  try {
+    await verifyReservationOtp(String(email ?? ""), String(code ?? ""), await clientKey());
+    return { ok: true, message: "Email verified." };
+  } catch (e) {
+    return { ok: false, error: safeMessage(e) };
+  }
+}
+
+export async function confirmReservationAction(_: ActionState, fd: FormData): Promise<ActionState> {
   let ref: string;
   try {
     const selections = fd
@@ -41,54 +64,34 @@ export async function createHoldAction(_: ActionState, fd: FormData): Promise<Ac
     if (!EMAIL_RE.test(leadEmail)) fieldErrors.leadEmail = "Enter a valid email address.";
     if (!PHONE_RE.test(leadPhone)) fieldErrors.leadPhone = "Enter a valid phone number including country code.";
     if (Object.keys(fieldErrors).length) return { error: Object.values(fieldErrors).join(" "), fieldErrors };
+    const otpId = await verifiedOtpFor(leadEmail);
+    if (!otpId) return { error: "Please verify your email with the 6-digit code before confirming.", fieldErrors: { leadEmail: "Verify this email first." } };
     const session = await getSession();
-    const { booking } = await createWebsiteBooking({
-      checkIn: str(fd, "checkIn"),
-      checkOut: str(fd, "checkOut"),
-      adults: Number(str(fd, "adults")),
-      children: Number(str(fd, "children") || 0),
-      selections,
-      leadName,
-      leadEmail,
-      leadPhone,
-      arrivalEta: str(fd, "arrivalEta").slice(0, 40) || null,
-      specialRequests: str(fd, "specialRequests").slice(0, 1000) || null,
-      acceptPolicies: fd.get("acceptPolicies") === "on",
-      marketingOptIn: fd.get("marketingOptIn") === "on",
-      userId: session?.user.emailVerified && session.user.email.toLowerCase() === leadEmail.toLowerCase() ? session.user.id : null,
-      displayedTotalPaise: Number(str(fd, "displayedTotal")) || null,
-    });
+    const { booking } = await createOtpReservation(
+      {
+        checkIn: str(fd, "checkIn"),
+        checkOut: str(fd, "checkOut"),
+        adults: Number(str(fd, "adults")),
+        children: Number(str(fd, "children") || 0),
+        selections,
+        leadName,
+        leadEmail,
+        leadPhone,
+        arrivalEta: str(fd, "arrivalEta").slice(0, 40) || null,
+        specialRequests: str(fd, "specialRequests").slice(0, 1000) || null,
+        acceptPolicies: fd.get("acceptPolicies") === "on",
+        marketingOptIn: fd.get("marketingOptIn") === "on",
+        userId: session?.user.emailVerified && session.user.email.toLowerCase() === leadEmail.toLowerCase() ? session.user.id : null,
+        displayedTotalPaise: Number(str(fd, "displayedTotal")) || null,
+      },
+      otpId,
+    );
     await grantBookingAccess(booking.id);
     ref = booking.reference;
   } catch (e) {
     return { error: safeMessage(e) };
   }
-  redirect(`/checkout/pay/${ref}`);
-}
-
-/** DEMO gateway only. Refused unless the configured provider is the demo adapter. */
-export async function demoGatewayAction(_: ActionState, fd: FormData): Promise<ActionState> {
-  if (!isDemoMode() || paymentConfig().provider !== "demo") return { error: "Demo gateway is disabled." };
-  const orderId = str(fd, "orderId");
-  const outcome = str(fd, "outcome") as "success" | "fail" | "close";
-  const [order] = await db.select().from(paymentOrders).where(eq(paymentOrders.providerOrderId, orderId));
-  if (!order) return { error: "Unknown demo order." };
-  const [b] = await db.select().from(bookings).where(eq(bookings.id, order.bookingId));
-  const demo = new DemoPaymentAdapter();
-  let dest: string;
-  try {
-    const p = await demo.simulatePayment(orderId, order.amountPaise, order.currency, outcome === "fail" ? "failed" : "captured");
-    if (outcome === "close") {
-      // Browser "closed": no callback reaches the server. Reconciliation must recover it.
-      dest = `/checkout/pay/${b.reference}?recovery=1`;
-    } else {
-      const r = await verifyCheckoutReturn({ providerOrderId: orderId, providerPaymentId: p.paymentId, signature: p.signature });
-      dest = r.outcome === "pending" ? `/checkout/pay/${b.reference}?failed=1` : `/booking/confirmation?ref=${b.reference}`;
-    }
-  } catch (e) {
-    return { error: safeMessage(e) };
-  }
-  redirect(dest);
+  redirect(`/booking/confirmation?ref=${ref}`);
 }
 
 export async function checkPaymentStatusAction(_: ActionState, fd: FormData): Promise<ActionState> {

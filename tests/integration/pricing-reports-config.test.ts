@@ -130,11 +130,10 @@ describe("integration honesty & production safety", () => {
     process.env = { ...saved };
   });
 
-  it("missing gateway closes online booking; nothing pretends to succeed", async () => {
+  it("online reservations don't need a payment gateway (OTP + pay later); payment config never pretends to succeed", async () => {
     process.env.PAYMENT_PROVIDER = "none";
     const st = await onlineBookingStatus();
-    expect(st.open).toBe(false);
-    await expect(createWebsiteBooking(guestInput({ roomTypeId: f.exec.id }))).rejects.toThrow(/not available/);
+    expect(st.open).toBe(true);
     process.env.PAYMENT_PROVIDER = "razorpay"; // without keys
     expect(paymentConfig().provider).toBe("none");
     process.env.RAZORPAY_KEY_ID = "rzp_live_x";
@@ -169,7 +168,7 @@ describe("integration honesty & production safety", () => {
     expect(st.open).toBe(false);
     const items = await setupChecklist();
     expect(items.filter((i) => i.blocking && !i.done).map((i) => i.key)).toEqual(
-      expect.arrayContaining(["times", "room_types", "policy_cancellation", "gateway", "email", "tax", "payment_rule", "channel"]),
+      expect.arrayContaining(["times", "room_types", "policy_cancellation", "email", "tax", "channel"]),
     );
   });
 });

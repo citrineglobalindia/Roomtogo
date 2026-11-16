@@ -45,7 +45,7 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
           <li aria-hidden>›</li>
           <li className="font-semibold text-forest-900" aria-current="step">2. Your details</li>
           <li aria-hidden>›</li>
-          <li>3. Payment</li>
+          <li>3. Verify email &amp; confirm</li>
           <li aria-hidden>›</li>
           <li>4. Confirmation</li>
         </ol>
@@ -103,7 +103,7 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
               <div className="mt-4">
                 <PriceSummary quote={result.quote} />
               </div>
-              {result.quote.balanceLaterPaise > 0 && <p className="mt-3 text-xs text-muted">You pay {formatINR(result.quote.dueNowPaise)} now; the balance is collected at the property.</p>}
+              <p className="mt-3 rounded-md bg-forest-100 px-3 py-2 text-xs text-forest-800">No online payment needed. Confirm with your email now; pay later by UPI or at the property.</p>
             </div>
             <Link href={`/book?checkIn=${input.checkIn}&checkOut=${input.checkOut}&adults=${input.adults}&children=${input.children}`} className="text-sm text-forest-800 underline">
               Change selection

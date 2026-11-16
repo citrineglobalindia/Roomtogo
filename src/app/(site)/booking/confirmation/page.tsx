@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { and, eq } from "drizzle-orm";
-import { TrackOnMount } from "@/components/site/client-bits";
+import { and, eq, isNull } from "drizzle-orm";
+import { ReservationConfirmedEvent } from "@/components/site/client-bits";
 import { Notice } from "@/components/site/sections";
 import { Icon } from "@/components/ui/icons";
 import { db } from "@/db";
@@ -29,19 +29,35 @@ export default async function Confirmation({ searchParams }: { searchParams: Pro
   const [exception] = await db.select().from(paymentExceptions).where(and(eq(paymentExceptions.bookingId, b.id), eq(paymentExceptions.status, "open")));
   const confirmed = ["confirmed", "checked_in", "checked_out"].includes(b.status);
   const net = b.amountPaidPaise - b.amountRefundedPaise;
-  // analytics purchase event: once, keyed by booking reference
-  const firstView = confirmed && !b.conversionTrackedAt;
-  if (firstView) await db.update(bookings).set({ conversionTrackedAt: new Date() }).where(eq(bookings.id, b.id));
+  const otpReservation = b.reservationStatus === "reservation_confirmed";
+  // Conversion event: claimed atomically so only the first view of a saved reservation emits it.
+  let fireConversion = false;
+  if (confirmed && otpReservation && !b.conversionTrackedAt) {
+    const claimed = await db
+      .update(bookings)
+      .set({ conversionTrackedAt: new Date() })
+      .where(and(eq(bookings.id, b.id), isNull(bookings.conversionTrackedAt)))
+      .returning({ id: bookings.id });
+    fireConversion = claimed.length === 1;
+  }
   return (
     <div className="container-site max-w-3xl py-12">
-      {firstView && !b.isDemo && <TrackOnMount event="purchase" params={{ transaction_id: b.reference, value: b.totalPaise / 100, currency: "INR", nights: b.nights, rooms: b.roomsCount }} />}
+      {fireConversion && <ReservationConfirmedEvent reservationId={b.reference} />}
       {confirmed ? (
         <div className="text-center">
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-forest-800 text-white">
             <Icon name="check" size={28} />
           </span>
-          <h1 className="mt-4 text-[42px]">Your stay is confirmed</h1>
-          <p className="mt-2 text-muted">A confirmation email is on its way to {b.leadEmail.replace(/(.{2}).+(@.+)/, "$1•••$2")}.</p>
+          <h1 className="mt-4 text-[42px]">{otpReservation ? "Reservation confirmed" : "Your stay is confirmed"}</h1>
+          {otpReservation && (
+            <p className="mt-3 inline-block rounded-full border border-gold-400/60 px-4 py-1.5 text-sm">
+              Reservation ID <strong className="ml-1 font-serif text-lg tracking-wide text-forest-900" data-testid="reservation-id">{b.reference}</strong>
+            </p>
+          )}
+          <p className="mt-3 text-muted">A confirmation email is on its way to {b.leadEmail.replace(/(.{2}).+(@.+)/, "$1•••$2")}.</p>
+          {otpReservation && b.amountPaidPaise === 0 && (
+            <p className="mx-auto mt-3 max-w-md rounded-md bg-forest-100 px-4 py-2 text-sm text-forest-800">Nothing has been charged. Payment is due later — by UPI QR or at the property.</p>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
@@ -53,16 +69,14 @@ export default async function Confirmation({ searchParams }: { searchParams: Pro
                 ? "We are waiting for payment verification from the provider. This page will show your confirmation once verified."
                 : `This booking is ${b.status.replace("_", " ")}.`}
           </Notice>
-          {b.status === "pending_payment" && (
-            <Link href={`/checkout/pay/${b.reference}`} className="btn-outline">Back to payment</Link>
-          )}
+
         </div>
       )}
-      {b.isDemo && <p className="mt-6 text-center"><span className="badge-sample">DEMO booking — no real payment</span></p>}
+
       <div className="card mt-8 divide-y divide-sand">
         <dl className="grid gap-4 p-6 sm:grid-cols-2">
-          <Item k="Booking reference" v={b.reference} />
-          <Item k="Status" v={b.status.replace("_", " ")} />
+          <Item k={otpReservation ? "Reservation ID" : "Booking reference"} v={b.reference} />
+          <Item k="Status" v={otpReservation ? "Reservation confirmed" : b.status.replace("_", " ")} />
           <Item k="Check-in" v={`${formatDate(b.checkIn, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}${s.checkInTime ? ` from ${s.checkInTime}` : ""}`} />
           <Item k="Check-out" v={`${formatDate(b.checkOut, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}${s.checkOutTime ? ` by ${s.checkOutTime}` : ""}`} />
           <Item k="Accommodation" v={d.units.map((u) => u.roomTypeName).join(", ")} />

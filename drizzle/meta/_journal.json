@@ -36,6 +36,13 @@
       "when": 1793790000000,
       "tag": "0004_media_blobs_site_images",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794900000000,
+      "tag": "0005_reservation_otp",
+      "breakpoints": true
     }
   ]
 }

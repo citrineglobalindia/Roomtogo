@@ -563,6 +563,11 @@ export const bookings = pgTable(
     checkedInAt: ts("checked_in_at"),
     checkedOutAt: ts("checked_out_at"),
     conversionTrackedAt: ts("conversion_tracked_at"),
+    /** Website reservations confirmed by email OTP: "reservation_confirmed" (payment later, UPI/at property) */
+    reservationStatus: text("reservation_status"),
+    /** How the booking was confirmed: "email_otp" | null (payment / staff) */
+    confirmationMethod: text("confirmation_method"),
+    emailVerifiedAt: ts("email_verified_at"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -573,6 +578,25 @@ export const bookings = pgTable(
     index("bookings_user_idx").on(t.userId),
     index("bookings_email_idx").on(sql`lower(${t.leadEmail})`),
   ],
+);
+
+/** Email OTPs for website reservation confirmation. Only a keyed hash of the code is stored. */
+export const reservationOtps = pgTable(
+  "reservation_otps",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull(),
+    codeHash: text("code_hash").notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    expiresAt: ts("expires_at").notNull(),
+    verifiedAt: ts("verified_at"),
+    /** Set once a reservation is created with this OTP — makes confirmation idempotent */
+    consumedBookingId: uuid("consumed_booking_id").references(() => bookings.id, { onDelete: "set null" }),
+    /** Hashed IP + user agent (never the raw IP) */
+    clientKey: text("client_key").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("reservation_otps_email_idx").on(t.email, t.createdAt)],
 );
 
 /** One row per allocated physical unit in a booking. */

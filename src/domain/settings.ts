@@ -97,26 +97,26 @@ export async function setupChecklist(): Promise<ChecklistItem[]> {
     { key: "policy_terms", label: "Booking terms approved", done: policyOk("terms"), blocking: true, href: "/admin/content/policies" },
     { key: "policy_privacy", label: "Privacy policy approved", done: policyOk("privacy"), blocking: true, href: "/admin/content/policies" },
     { key: "policy_house", label: "House rules approved", done: policyOk("house_rules"), blocking: false, href: "/admin/content/policies" },
-    { key: "payment_rule", label: CONFIRMABLE_FACTS.payment_rule, done: isConfirmed(s, "payment_rule"), blocking: true, href: "/admin/settings" },
+    { key: "payment_rule", label: CONFIRMABLE_FACTS.payment_rule, done: isConfirmed(s, "payment_rule"), blocking: false, href: "/admin/settings" },
     { key: "tax", label: CONFIRMABLE_FACTS.tax, done: isConfirmed(s, "tax"), blocking: true, href: "/admin/settings" },
     {
       key: "gateway",
       label: "Payment gateway (Room2Go's own merchant account)",
       done: pay.provider === "razorpay",
       detail: pay.provider === "none" ? pay.reason : pay.provider === "demo" ? "DEMO gateway — no real payments" : `Razorpay ${pay.mode}`,
-      blocking: true,
+      blocking: false, // reservations are OTP-confirmed; online payment is optional
       href: "/admin/settings/integrations",
     },
     {
       key: "webhook",
       label: "Payment webhook secret configured",
       done: pay.provider === "razorpay" && !!pay.webhookSecret,
-      blocking: true,
+      blocking: false, // reservations are OTP-confirmed; online payment is optional
       href: "/admin/settings/integrations",
     },
     {
       key: "email",
-      label: "Transactional email sender configured",
+      label: "Transactional email sender configured (needed for reservation OTP codes)",
       done: mail.provider === "smtp",
       detail: mail.provider === "none" ? mail.reason : mail.provider === "demo" ? "DEMO capture — emails are not delivered" : undefined,
       blocking: true,
@@ -158,8 +158,8 @@ export async function onlineBookingStatus(): Promise<BookingAvailability> {
   const demo = isDemoMode();
   const reasons: string[] = [];
   if (s.bookingMode !== "instant") reasons.push("Online booking is set to enquiry-only by the property.");
-  const pay = paymentConfig();
-  if (pay.provider === "none") reasons.push(`Payments unavailable: ${pay.reason}`);
+  // Website reservations are confirmed by email OTP and paid later (UPI QR / at the property), so an
+  // online payment provider is not required.
   if (!demo) {
     const items = await setupChecklist();
     for (const i of items) if (i.blocking && !i.done) reasons.push(`Setup incomplete: ${i.label}`);
