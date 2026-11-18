@@ -68,8 +68,8 @@ export default async function RoomDetail({ params }: P) {
             {[
               ["Sleeps", `${t.maxOccupancy} guest${t.maxOccupancy > 1 ? "s" : ""}`],
               ["Adults", `up to ${t.maxAdults}`],
-              ["Children", t.maxChildren ? `up to ${t.maxChildren}` : "not specified"],
-              ["Beds", t.bedConfiguration ?? "to be confirmed"],
+              ["Children", t.maxChildren ? `up to ${t.maxChildren}` : "—"],
+              ["Layout", t.bedConfiguration ?? "to be confirmed"],
             ].map(([k, v]) => (
               <div key={k} className="card p-4 sm:p-5">
                 <dt className="text-[11px] uppercase tracking-[0.18em] text-gold-700">{k}</dt>

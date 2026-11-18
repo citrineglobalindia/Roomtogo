@@ -44,3 +44,9 @@ export function paiseToRupeeInput(paise: number | null | undefined): string {
   if (paise == null) return "";
   return (paise / 100).toFixed(paise % 100 === 0 ? 0 : 2);
 }
+
+/** "1 BHK" / "2 BHK" from a room-type name, or null. */
+export function bhkLabel(name: string): string | null {
+  const m = /(\d+)\s*BHK/i.exec(name);
+  return m ? `${m[1]} BHK` : null;
+}

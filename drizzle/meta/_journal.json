@@ -43,6 +43,13 @@
       "when": 1794900000000,
       "tag": "0005_reservation_otp",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795000000000,
+      "tag": "0006_data_patches",
+      "breakpoints": true
     }
   ]
 }

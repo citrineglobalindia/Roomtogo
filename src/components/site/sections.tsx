@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SearchButton, StayDates } from "./booking-ui";
 import { Icon } from "@/components/ui/icons";
-import { formatINR } from "@/lib/money";
+import { bhkLabel, formatINR } from "@/lib/money";
 import { addDays } from "@/lib/dates";
 
 export function Eyebrow({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -181,7 +181,7 @@ export function RoomCard({
   sample,
   tone = "light",
 }: {
-  room: { slug: string; name: string; summary: string; id: string };
+  room: { slug: string; name: string; summary: string; id: string; maxOccupancy?: number };
   photo: PhotoData | null;
   amenities: { name: string; icon: string }[];
   fromPaise: number | null;
@@ -194,6 +194,14 @@ export function RoomCard({
       <Link href={`/rooms/${room.slug}`} className="img-zoom relative block" tabIndex={-1} aria-hidden>
         <Photo photo={photo} className="aspect-[4/3]" sizes="(min-width: 768px) 50vw, 100vw" />
         <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
+        <span className="absolute left-4 top-4 flex flex-wrap gap-1.5">
+          {bhkLabel(room.name) && <span className="rounded-full bg-gold-300/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-forest-975">{bhkLabel(room.name)} · Entire apartment</span>}
+          {room.maxOccupancy != null && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-forest-975/75 px-3 py-1 text-[11px] font-medium text-cream-50 backdrop-blur">
+              <Icon name="users" size={13} /> Up to {room.maxOccupancy} guest{room.maxOccupancy > 1 ? "s" : ""}
+            </span>
+          )}
+        </span>
         {fromPaise != null && (
           <span className="absolute bottom-4 left-4 rounded-full border border-gold-300/50 bg-forest-975/70 px-3.5 py-1.5 text-xs text-cream-100 backdrop-blur">
             from <span className="font-serif text-[17px] text-gold-200">{formatINR(fromPaise)}</span> / night
@@ -209,19 +217,20 @@ export function RoomCard({
         <p className="mt-4 text-sm text-muted">{room.summary}</p>
         {amenities.length > 0 && (
           <ul className={`mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm ${dark ? "text-cream-100/80" : "text-ink/80"}`}>
-            {amenities.slice(0, 4).map((a) => (
+            {amenities.slice(0, 6).map((a) => (
               <li key={a.name} className="flex items-center gap-2">
                 <Icon name={a.icon} size={18} className={dark ? "text-gold-300" : "text-gold-600"} /> {a.name}
               </li>
             ))}
+            {amenities.length > 6 && <li className={dark ? "text-gold-200" : "text-gold-700"}>+{amenities.length - 6} more</li>}
           </ul>
         )}
         <div className="mt-auto grid gap-2.5 pt-7 min-[400px]:grid-cols-2 sm:gap-3">
-          <Link href={`/rooms/${room.slug}`} className={dark ? "btn-ghost-light" : "btn-outline"}>
-            View room details
+          <Link href={`/rooms/${room.slug}`} className={`${dark ? "btn-ghost-light" : "btn-outline"} whitespace-nowrap !px-3`}>
+            View details
           </Link>
-          <Link href={`/book?roomType=${room.id}`} className={dark ? "btn-gold" : "btn-primary"}>
-            Book this room <Icon name="arrow" size={16} />
+          <Link href={`/book?roomType=${room.id}`} className={`${dark ? "btn-gold" : "btn-primary"} whitespace-nowrap !px-3`}>
+            Book now <Icon name="arrow" size={16} />
           </Link>
         </div>
       </div>
