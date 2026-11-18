@@ -30,8 +30,6 @@ const nextConfig: NextConfig = {
     // Legacy URLs from the previous single-page site (roomtogo.in/index.html with #anchors).
     return [
       { source: "/index.html", destination: "/", permanent: true },
-      { source: "/rooms/executive-room", destination: "/rooms/1-bhk-single", permanent: true },
-      { source: "/rooms/suite-room", destination: "/rooms/2-bhk", permanent: true },
       { source: "/index.php", destination: "/", permanent: true },
       { source: "/rooms.html", destination: "/rooms", permanent: true },
       { source: "/gallery.html", destination: "/gallery", permanent: true },

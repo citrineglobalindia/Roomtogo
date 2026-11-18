@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { markReservationConversionSent } from "../../booking-actions";
 import { ReservationConfirmedEvent } from "@/components/site/client-bits";
 import { Notice } from "@/components/site/sections";
 import { Icon } from "@/components/ui/icons";
@@ -30,19 +31,11 @@ export default async function Confirmation({ searchParams }: { searchParams: Pro
   const confirmed = ["confirmed", "checked_in", "checked_out"].includes(b.status);
   const net = b.amountPaidPaise - b.amountRefundedPaise;
   const otpReservation = b.reservationStatus === "reservation_confirmed";
-  // Conversion event: claimed atomically so only the first view of a saved reservation emits it.
-  let fireConversion = false;
-  if (confirmed && otpReservation && !b.conversionTrackedAt) {
-    const claimed = await db
-      .update(bookings)
-      .set({ conversionTrackedAt: new Date() })
-      .where(and(eq(bookings.id, b.id), isNull(bookings.conversionTrackedAt)))
-      .returning({ id: bookings.id });
-    fireConversion = claimed.length === 1;
-  }
+  // Conversion event: rendered until the browser has pushed it and the server has recorded that (see ReservationConfirmedEvent).
+  const fireConversion = confirmed && otpReservation && !b.conversionTrackedAt;
   return (
     <div className="container-site max-w-3xl py-12">
-      {fireConversion && <ReservationConfirmedEvent reservationId={b.reference} />}
+      {fireConversion && <ReservationConfirmedEvent reservationId={b.reference} onSent={markReservationConversionSent} />}
       {confirmed ? (
         <div className="text-center">
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-forest-800 text-white">

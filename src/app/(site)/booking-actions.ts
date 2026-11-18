@@ -1,5 +1,5 @@
 "use server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import type { ActionState } from "@/components/ui/form";
 import { db } from "@/db";
@@ -141,4 +141,18 @@ export async function guestRequestAction(_: ActionState, fd: FormData): Promise<
   } catch (e) {
     return { error: safeMessage(e) };
   }
+}
+
+/**
+ * Called by the confirmation page right after the browser has pushed `room2go_reservation_confirmed`.
+ * Marks the reservation's conversion as sent (atomically), so later views never push it again.
+ * Only someone who can view the reservation can mark it; it changes nothing else.
+ */
+export async function markReservationConversionSent(reference: string): Promise<void> {
+  const v = await bookingForViewer(reference);
+  if (!v) return;
+  await db
+    .update(bookings)
+    .set({ conversionTrackedAt: new Date() })
+    .where(and(eq(bookings.id, v.booking.id), isNull(bookings.conversionTrackedAt)));
 }

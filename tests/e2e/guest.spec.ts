@@ -14,7 +14,7 @@ test.describe("guest journeys", () => {
         .filter((e) => (e as { event?: string }).event === "room2go_reservation_confirmed")
         .map((e) => Object.fromEntries(Object.entries(e as Record<string, unknown>).filter(([k]) => !k.startsWith("gtm.")))),
     );
-    expect(events).toEqual([{ event: "room2go_reservation_confirmed", reservation_id: ref, reservation_status: "otp_confirmed", booking_source: "website" }]);
+    expect(events).toEqual([{ event: "room2go_reservation_confirmed", reservation_id: ref, reservation_status: "otp_confirmed" }]);
     // refresh does not fire it again
     await page.reload();
     await expect(page.getByRole("heading", { name: "Reservation confirmed" })).toBeVisible();
@@ -40,6 +40,12 @@ test.describe("guest journeys", () => {
     await p2.getByRole("button", { name: "View booking" }).click();
     await p2.waitForURL(new RegExp(`/manage-booking/${ref}$`));
     await expect(p2.getByText("E2E Guest")).toBeVisible();
+    // a different device (no browser memory of the push) still gets no second conversion: the server recorded it
+    await p2.goto(`/booking/confirmation?ref=${ref}`);
+    await expect(p2.getByRole("heading", { name: "Reservation confirmed" })).toBeVisible();
+    await p2.waitForTimeout(500);
+    expect(await p2.evaluate(() => (window.dataLayer || []).filter((e) => (e as { event?: string }).event === "room2go_reservation_confirmed").length)).toBe(0);
+    await p2.goto(`/manage-booking/${ref}`);
     await p2.getByRole("button", { name: "Request cancellation" }).click();
     await p2.getByRole("button", { name: "Send cancellation request" }).click();
     await expect(p2.getByText(/not final until our team approves/)).toBeVisible();

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { eq, inArray } from "drizzle-orm";
 import { SwipeRow } from "@/components/site/swipe";
 import { BookingSearchPanel, Notice, Photo } from "@/components/site/sections";
@@ -21,9 +21,17 @@ export async function generateMetadata({ params }: P): Promise<Metadata> {
   return { title: `${r.type.name} — Room2Go Bengaluru`, description: r.type.summary, alternates: { canonical: `/rooms/${r.type.slug}` } };
 }
 
+const LEGACY_SLUGS: Record<string, string> = { "executive-room": "1-bhk-single", "suite-room": "2-bhk" };
+
 export default async function RoomDetail({ params }: P) {
-  const r = await roomTypeWithUnits((await params).slug);
-  if (!r || r.type.publicStatus !== "published") notFound();
+  const { slug } = await params;
+  const r = await roomTypeWithUnits(slug);
+  if (!r || r.type.publicStatus !== "published") {
+    // Room pages renamed in Nov 2026 — send old links (Google, ads, shared) to the new page.
+    const moved = LEGACY_SLUGS[slug];
+    if (moved && (await roomTypeWithUnits(moved))?.type.publicStatus === "published") permanentRedirect(`/rooms/${moved}`);
+    notFound();
+  }
   const t = r.type;
   const s = await getSettings();
   const photos = await roomPhotos(t.id);

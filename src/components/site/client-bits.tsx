@@ -94,25 +94,36 @@ export function TrackOnMount({ event, params }: { event: Parameters<typeof track
 }
 
 /**
- * Google Ads / GTM conversion signal for an OTP-confirmed reservation.
- * Rendered by the server only on the first view of a newly saved reservation (conversion_tracked_at is
- * claimed atomically), and guarded again in the browser per reservation ID — so a refresh, back/forward
- * or re-render never pushes a duplicate. Contains no personal data.
+ * Google Ads / GTM conversion signal for an OTP-confirmed reservation. Contains no personal data.
+ * Once per reservation:
+ *  - the server renders this only while the reservation's conversion is not yet marked as sent;
+ *  - the browser remembers each reservation ID it has pushed (refresh / back-forward / re-render guard);
+ *  - after the push, the server marks the conversion as sent, so it never renders again — on any device.
+ * The server mark happens only after the browser actually pushed, so a page that was generated but never
+ * ran (prefetch, dropped connection) does not lose the conversion.
  */
-export function ReservationConfirmedEvent({ reservationId }: { reservationId: string }) {
+const pushedReservations = new Set<string>();
+export function ReservationConfirmedEvent({ reservationId, onSent }: { reservationId: string; onSent: (id: string) => Promise<void> }) {
   useEffect(() => {
     const key = `r2g_resv_evt_${reservationId}`;
+    let seen = pushedReservations.has(reservationId);
     try {
-      if (localStorage.getItem(key)) return;
-      localStorage.setItem(key, "1");
+      seen ||= !!localStorage.getItem(key);
     } catch {}
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({
-      event: "room2go_reservation_confirmed",
-      reservation_id: reservationId,
-      reservation_status: "otp_confirmed",
-      booking_source: "website",
-    });
-  }, [reservationId]);
+    if (!seen) {
+      pushedReservations.add(reservationId);
+      try {
+        localStorage.setItem(key, "1");
+      } catch {}
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({
+        event: "room2go_reservation_confirmed",
+        reservation_id: reservationId,
+        reservation_status: "otp_confirmed",
+      });
+    }
+    // Always (re)confirm to the server, so a mark that failed earlier is retried on the next view.
+    onSent(reservationId).catch(() => undefined);
+  }, [reservationId, onSent]);
   return null;
 }
